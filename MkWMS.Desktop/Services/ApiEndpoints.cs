@@ -1,0 +1,21 @@
+﻿namespace MkWMS.Desktop.Services;
+
+public static class ApiEndpoints
+{
+    public const string Login = "auth/login";
+    public const string ChangePassword = "auth/change-password";
+
+    public const string Products = "products";
+    public const string Batches = "batches";
+    public const string SerialNumbers = "serialnumbers";
+    public const string Warehouses = "warehouses";
+    public const string Departments = "departments";
+    public const string DocumentTypes = "documenttypes";
+    public const string Roles = "roles";
+    public const string Users = "users";
+    public const string Documents = "documents";
+    public const string StockBalances = "stockbalances";
+    public const string StockMovements = "stockmovements";
+    public const string AuditLogs = "auditlogs";
+    public const string Reports = "reports";
+}

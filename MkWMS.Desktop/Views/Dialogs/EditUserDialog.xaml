@@ -1,0 +1,170 @@
+﻿<Window x:Class="MkWMS.Desktop.Views.Dialogs.EditUserDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding IsNew, StringFormat='{}{0} пользователя', ConverterParameter='Создание|Редактирование'}"
+        Height="520" Width="680"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        Background="{StaticResource Background}">
+
+    <Border Background="{StaticResource Surface}"
+            CornerRadius="12"
+            Margin="20"
+            Effect="{StaticResource Elevation2}">
+
+        <Grid Margin="32">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0"
+                       Text="{Binding IsNew, StringFormat='{}{0} пользователя', ConverterParameter='Создание|Редактирование'}"
+                       Style="{StaticResource HeaderText}"
+                       Margin="0,0,0,24"/>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="160"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Логин:"
+                           Style="{StaticResource SubHeaderText}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,0,12"/>
+
+                <Border Grid.Row="0" Grid.Column="1"
+                        Style="{StaticResource InputBorder}"
+                        Margin="0,0,0,12">
+                    <TextBox Text="{Binding User.Login, UpdateSourceTrigger=PropertyChanged}"
+                             Padding="8"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             IsReadOnly="{Binding IsNew, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}"/>
+                </Border>
+
+                <TextBlock Grid.Row="1" Grid.Column="0"
+                           Text="Полное имя:"
+                           Style="{StaticResource SubHeaderText}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,0,12"/>
+
+                <Border Grid.Row="1" Grid.Column="1"
+                        Style="{StaticResource InputBorder}"
+                        Margin="0,0,0,12">
+                    <TextBox Text="{Binding User.FullName, UpdateSourceTrigger=PropertyChanged}"
+                             Padding="8"
+                             BorderThickness="0"
+                             Background="Transparent"/>
+                </Border>
+
+                <TextBlock Grid.Row="2" Grid.Column="0"
+                           Text="Пароль:"
+                           Style="{StaticResource SubHeaderText}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,0,12"
+                           Visibility="{Binding IsNew, Converter={StaticResource BoolToVis}}"/>
+
+                <Border Grid.Row="2" Grid.Column="1"
+                        Style="{StaticResource InputBorder}"
+                        Margin="0,0,0,12"
+                        Visibility="{Binding IsNew, Converter={StaticResource BoolToVis}}">
+                    <TextBox Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}"
+                             Padding="8"
+                             BorderThickness="0"
+                             Background="Transparent"/>
+                </Border>
+
+                <TextBlock Grid.Row="3" Grid.Column="0"
+                           Text="Склад:"
+                           Style="{StaticResource SubHeaderText}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,0,12"/>
+
+                <Border Grid.Row="3" Grid.Column="1"
+                        Style="{StaticResource InputBorder}"
+                        Margin="0,0,0,12">
+                    <ComboBox ItemsSource="{Binding Warehouses}"
+                              DisplayMemberPath="Name"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding User.WarehouseId}"
+                              Padding="8"
+                              BorderThickness="0"
+                              Background="Transparent"/>
+                </Border>
+
+                <TextBlock Grid.Row="4" Grid.Column="0"
+                           Text="Активен:"
+                           Style="{StaticResource SubHeaderText}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,0,12"/>
+
+                <CheckBox Grid.Row="4" Grid.Column="1"
+                          IsChecked="{Binding User.IsActive}"
+                          VerticalAlignment="Center"
+                          Margin="0,0,0,12"/>
+
+                <TextBlock Grid.Row="5" Grid.Column="0"
+                           Text="Роли:"
+                           Style="{StaticResource SubHeaderText}"
+                           VerticalAlignment="Top"
+                           Margin="0,4,0,0"/>
+
+                <ListBox x:Name="RolesListBox"
+                         Grid.Row="5" Grid.Column="1"
+                         ItemsSource="{Binding Roles}"
+                         SelectionMode="Multiple"
+                         Height="140"
+                         Margin="0,4,0,0">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <CheckBox Content="{Binding Name}"
+                                      VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+
+            <StackPanel Grid.Row="2"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Margin="0,24,0,0">
+                <Button Content="Сохранить"
+                        Style="{StaticResource PrimaryButton}"
+                        Width="140"
+                        Height="44"
+                        Command="{Binding SaveCommand}"
+                        Margin="0,0,12,0"/>
+                <Button Content="Отмена"
+                        Style="{StaticResource OutlineButton}"
+                        Width="140"
+                        Height="44"
+                        Command="{Binding CancelCommand}"/>
+            </StackPanel>
+
+            <ProgressBar Grid.Row="2"
+                         IsIndeterminate="{Binding IsBusy}"
+                         Height="4"
+                         Margin="0,16,0,0"
+                         Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
+
+            <TextBlock Grid.Row="2"
+                       Text="{Binding ErrorMessage}"
+                       Foreground="{StaticResource Danger}"
+                       TextWrapping="Wrap"
+                       Margin="0,12,0,0"
+                       HorizontalAlignment="Center"/>
+        </Grid>
+    </Border>
+</Window>

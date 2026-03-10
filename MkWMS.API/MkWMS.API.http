@@ -1,0 +1,6 @@
+@MkWMS.API_HostAddress = http://localhost:5295
+
+GET {{MkWMS.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

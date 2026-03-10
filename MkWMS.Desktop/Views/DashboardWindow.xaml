@@ -1,0 +1,190 @@
+﻿<Window x:Class="MkWMS.Desktop.Views.DashboardWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+        Title="MkWMS — Складской учёт"
+        Height="760" Width="1366"
+        MinWidth="1024" MinHeight="620"
+        WindowStartupLocation="CenterScreen"
+        WindowState="Maximized"
+        Background="{StaticResource Background}">
+
+    <Window.Resources>
+        <converters:MultiRoleToVisibilityConverter x:Key="MultiRoleToVis"/>
+        <converters:RolesToStringConverter x:Key="RolesToStringConverter"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0"
+                Background="{StaticResource Surface}"
+                BorderBrush="{StaticResource Border}"
+                BorderThickness="0,0,1,0"
+                Effect="{StaticResource Elevation3}">
+            <StackPanel>
+                <!-- Header -->
+                <StackPanel Margin="0,40,0,50" HorizontalAlignment="Center">
+                    <TextBlock Text="MkWMS"
+                               FontSize="36"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource Primary}"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="Система складского учёта"
+                               FontSize="12"
+                               Foreground="{StaticResource TextSecondary}"
+                               HorizontalAlignment="Center"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <!-- Navigation Buttons -->
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToDashboardCommand}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🏠" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Главная" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToProductsCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель,Кладовщик'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📦" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Номенклатура" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToDocumentsCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель,Кладовщик'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📋" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Документы" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToWarehousesCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🏬" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Склады" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToReportsCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📊" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Отчёты" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Rectangle Height="1" Fill="{StaticResource Border}" Margin="24,16,24,16"
+                           Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор'}"/>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToUsersCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="👥" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Пользователи" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToAuditCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📜" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Журнал действий" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToBatchesCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Кладовщик'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🧾" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Партии" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToSerialsCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Кладовщик'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔢" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Серийные номера" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToDepartmentsCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🏢" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Подразделения" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToDocumentTypesCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📑" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Типы документов" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource SidebarButton}" Command="{Binding GoToRolesCommand}"
+                        Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔐" FontSize="20" Margin="12,0,16,0"/>
+                        <TextBlock Text="Роли" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Bottom User Panel -->
+                <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,24">
+                    <TextBlock Text="{Binding CurrentUserName}"
+                               FontSize="14"
+                               FontWeight="Medium"
+                               Foreground="{StaticResource TextPrimary}"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,8"/>
+                    <Button Content="Выйти"
+                            Style="{StaticResource OutlineButton}"
+                            Width="140"
+                            Command="{Binding LogoutCommand}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Column="1">
+            <Border Background="{StaticResource Surface}"
+                    Height="64"
+                    BorderBrush="{StaticResource Border}"
+                    BorderThickness="0,0,0,1"
+                    Effect="{StaticResource Elevation1}">
+                <Grid Margin="32,0">
+                    <TextBlock Text="Добро пожаловать"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Roles, Converter={StaticResource RolesToStringConverter}, StringFormat='Роли: {0}'}"
+                                   Foreground="{StaticResource TextSecondary}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,24,0"/>
+                        <Button Content="Выйти"
+                                Style="{StaticResource OutlineButton}"
+                                Width="120"
+                                Command="{Binding LogoutCommand}"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <ContentControl Content="{Binding CurrentViewModel}"
+                            Margin="32,80,32,32"/>
+        </Grid>
+    </Grid>
+</Window>

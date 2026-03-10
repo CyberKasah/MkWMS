@@ -1,0 +1,20 @@
+﻿<Application x:Class="MkWMS.Desktop.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:MkWMS.Desktop.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Главный файл стилей -->
+                <ResourceDictionary Source="Resources/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <!-- Конвертеры -->
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+            <converters:ShowHideConverter x:Key="ShowHideConverter" />
+            <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
+            <converters:RolesToStringConverter x:Key="RolesToStringConverter" />
+            <converters:RoleToVisibilityConverter x:Key="RoleToVisibility" />
+            <converters:MultiRoleToVisibilityConverter x:Key="MultiRoleToVis"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

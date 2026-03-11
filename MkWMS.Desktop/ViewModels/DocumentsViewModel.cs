@@ -1,5 +1,4 @@
-﻿// ViewModels/DocumentsViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
 using MkWMS.Desktop.Models;
@@ -8,13 +7,7 @@ using MkWMS.Desktop.Views.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using System.Windows;
-using MkWMS.Desktop.Views;
-using System;
-using System.Threading.Tasks;
-using System;
-using System.Threading.Tasks;
-using System.Linq;
+
 
 namespace MkWMS.Desktop.ViewModels;
 
@@ -58,32 +51,49 @@ public partial class DocumentsViewModel : BaseViewModel
     private async Task PostDocument()
     {
         if (SelectedDocument == null) return;
+
         try
         {
             var success = await _apiClient.PostDocumentAsync(SelectedDocument.Id);
-            if (success) await LoadAsync();
+            if (success)
+            {
+                await LoadAsync();
+            }
         }
-        catch (Exception ex) { SetError(ex.Message); }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
     }
 
     [RelayCommand]
     private async Task UnpostDocument()
     {
         if (SelectedDocument == null) return;
+
         try
         {
             var success = await _apiClient.UnpostDocumentAsync(SelectedDocument.Id);
-            if (success) await LoadAsync();
+            if (success)
+            {
+                await LoadAsync();
+            }
         }
-        catch (Exception ex) { SetError(ex.Message); }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+        }
+
     }
 
     [RelayCommand]
-    private void CreateNewDocument()
+    private async Task CreateNewDocument()
     {
         var vm = new CreateDocumentViewModel(_apiClient);
         var dialog = new CreateDocumentDialog { DataContext = vm };
         if (dialog.ShowDialog() == true)
-            LoadAsync();
+        {
+            await LoadAsync();
+        }
     }
 }

@@ -64,7 +64,7 @@ public partial class DashboardViewModel : BaseViewModel
         loginWindow.Show();
         Application.Current.MainWindow?.Close();
     }
-    [RelayCommand] public void GoToDashboard() => _navigation.Navigate(new DashboardViewModel(_apiClient, _authService, _navigation));
+    [RelayCommand] public void GoToDashboard() => ConfigureDashboardByRole();
     [RelayCommand] public void GoToProducts() => _navigation.Navigate(new ProductsViewModel(_apiClient));
     [RelayCommand] public void GoToDocuments() => _navigation.Navigate(new DocumentsViewModel(_apiClient));
     [RelayCommand] public void GoToUsers() => _navigation.Navigate(new UsersViewModel(_apiClient));

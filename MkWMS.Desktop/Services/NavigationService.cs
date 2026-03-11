@@ -6,6 +6,16 @@ namespace MkWMS.Desktop.Services;
 public class NavigationService
 {
     private BaseViewModel? _currentViewModel;
+    private object value;
+
+    public NavigationService()
+    {
+    }
+
+    public NavigationService(object value)
+    {
+        this.value = value;
+    }
 
     public BaseViewModel? CurrentViewModel
     {

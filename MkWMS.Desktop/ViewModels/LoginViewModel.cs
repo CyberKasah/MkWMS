@@ -137,7 +137,8 @@ public partial class LoginViewModel : BaseViewModel
             }
 
             // Успешный вход → открываем дашборд
-            var dashboardVm = new DashboardViewModel(_apiClient, _authService);
+            var navigation = new NavigationService();
+            var dashboardVm = new DashboardViewModel(_apiClient, _authService, navigation);
             var dashboard = new DashboardWindow
             {
                 DataContext = dashboardVm

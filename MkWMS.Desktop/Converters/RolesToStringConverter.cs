@@ -4,20 +4,22 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Data;
 
-namespace MkWMS.Desktop.Converters;
-
-public class RolesToStringConverter : IValueConverter
+namespace MkWMS.Desktop.Converters
 {
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    public class RolesToStringConverter : IValueConverter
     {
-        if (value is IEnumerable<string> roleNames && roleNames.Any())
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return string.Join(", ", roleNames);
+            if (value is IEnumerable<string> roleNames && roleNames.Any())
+            {
+                return string.Join(", ", roleNames);
+            }
+
+            return "Нет ролей";
         }
-
-        return "Нет ролей";
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
     }
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotImplementedException();
 }

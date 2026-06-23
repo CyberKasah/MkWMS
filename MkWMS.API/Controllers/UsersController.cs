@@ -67,10 +67,13 @@ public class UsersController : ControllerBase
             return BadRequest($"Пользователь с логином '{dto.Login}' уже существует");
 
         // Проверка существования всех ролей
-        foreach (var roleId in dto.RoleIds)
+        if (dto.RoleIds != null)
         {
-            if (!await _userService.RoleExistsAsync(roleId))
-                return BadRequest($"Роль с ID {roleId} не существует");
+            foreach (var roleId in dto.RoleIds)
+            {
+                if (!await _userService.RoleExistsAsync(roleId))
+                    return BadRequest($"Роль с ID {roleId} не существует");
+            }
         }
 
         var created = await _userService.CreateWithRolesAsync(dto);

@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MkWMS.API.DTOs;
 using MkWMS.Data.Context;
+using MkWMS.Data.Entities;
 
 namespace MkWMS.API.Controllers;
 
 [ApiController]
-[Route("api/serialnumbers")]   // ← исправлено
-[Authorize(Policy = "AdminPolicy")]
+[Route("api/serialnumbers")]
+[Authorize] // Чтение доступно всем авторизованным пользователям
 public class SerialNumbersController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
@@ -21,50 +22,76 @@ public class SerialNumbersController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<PagedResult<SerialNumberDto>>> GetAll([FromQuery] PagedRequestDto req)
     {
-        if (req.Page < 1) req.Page = 1;
-        if (req.PageSize < 1 || req.PageSize > 100) req.PageSize = 20;
-
-        var query = _context.SerialNumbers.AsNoTracking().AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(req.Search))
+        try
         {
-            var s = req.Search.ToLower().Trim();
-            query = query.Where(x => x.Number.ToLower().Contains(s));
-        }
+            // 1. Валидация параметров
+            var page = req.Page < 1 ? 1 : req.Page;
+            var pageSize = req.PageSize < 1 ? 20 : req.PageSize;
 
-        query = req.SortBy?.ToLower() switch
-        {
-            "number" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(x => x.Number) : query.OrderBy(x => x.Number),
-            _ => query.OrderBy(x => x.Id)
-        };
+            var query = _context.SerialNumbers.AsNoTracking().AsQueryable();
 
-        var totalCount = await query.CountAsync();
-
-        var data = await query
-            .Skip((req.Page - 1) * req.PageSize)
-            .Take(req.PageSize)
-            .Select(x => new SerialNumberDto
+            // 2. Поиск (исправленный)
+            if (!string.IsNullOrWhiteSpace(req.Search))
             {
-                Id = x.Id,
-                Number = x.Number,
-                Status = x.Status,
-                ProductId = x.ProductId
-            }).ToListAsync();
+                var s = req.Search.ToLower().Trim();
+                query = query.Where(x => x.Number.ToLower().Contains(s));
+            }
 
-        return Ok(new PagedResult<SerialNumberDto>
+            // 3. Считаем общее кол-во
+            var totalCount = await query.CountAsync();
+
+            // 4. Получаем данные
+            var data = await query
+        .OrderByDescending(x => x.Id)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .Select(x => new SerialNumberDto
         {
-            TotalCount = totalCount,
-            Page = req.Page,
-            PageSize = req.PageSize,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)req.PageSize),
-            Items = data
+            Id = x.Id,
+            Number = x.Number,
+            Status = x.Status,
+            ProductId = x.ProductId,
+            ProductName = x.Product != null ? x.Product.Name : "Неизвестно",
+            RfidTag = x.RfidTag // ТЕПЕРЬ ПРИВЯЗКА В WPF ЗАРАБОТАЕТ
+        }).ToListAsync();
+
+            return Ok(new PagedResult<SerialNumberDto>
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+                Items = data ?? new List<SerialNumberDto>() // Гарантируем, что Items не null
+            });
+        }
+        catch (Exception ex)
+        {
+            // Если упадет — увидишь ошибку в консоли API
+            Console.WriteLine($"Error in SerialNumbers GetAll: {ex.Message}");
+            return StatusCode(500, "Internal Server Error");
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get(int id)
+    {
+        var entity = await _context.SerialNumbers.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        if (entity == null) return NotFound();
+
+        return Ok(new SerialNumberDto
+        {
+            Id = entity.Id,
+            Number = entity.Number,
+            Status = entity.Status,
+            ProductId = entity.ProductId
         });
     }
 
     [HttpPost]
+    [Authorize(Policy = "AdminPolicy")] // Создание только для админов
     public async Task<IActionResult> Create(SerialNumberDto dto)
     {
-        var entity = new MkWMS.Data.Entities.SerialNumber
+        var entity = new SerialNumber
         {
             Number = dto.Number,
             Status = dto.Status,
@@ -75,10 +102,26 @@ public class SerialNumbersController : ControllerBase
         await _context.SaveChangesAsync();
 
         dto.Id = entity.Id;
-        return Ok(dto);
+        return CreatedAtAction(nameof(Get), new { id = entity.Id }, dto);
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(Policy = "AdminPolicy")] // Обновление только для админов
+    public async Task<IActionResult> Update(int id, SerialNumberDto dto)
+    {
+        var entity = await _context.SerialNumbers.FindAsync(id);
+        if (entity == null) return NotFound();
+
+        entity.Number = dto.Number;
+        entity.Status = dto.Status;
+        entity.ProductId = dto.ProductId;
+
+        await _context.SaveChangesAsync();
+        return NoContent();
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "AdminPolicy")] // Удаление только для админов
     public async Task<IActionResult> Delete(int id)
     {
         var entity = await _context.SerialNumbers.FindAsync(id);
@@ -86,7 +129,6 @@ public class SerialNumbersController : ControllerBase
 
         _context.SerialNumbers.Remove(entity);
         await _context.SaveChangesAsync();
-
         return NoContent();
     }
 }

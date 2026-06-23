@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema; // Добавлено для NotMapped
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,5 +28,14 @@ public class Document
     public int CreatedByUserId { get; set; }
     public User CreatedByUser { get; set; } = null!;
 
+    public int? CounterpartyId { get; set; }
+    public Counterparty? Counterparty { get; set; }
+
+    public int? BaseDocumentId { get; set; }
+    public Document? BaseDocument { get; set; }
+
+    public string? ExternalNumber { get; set; }
+    public DateTime? ExternalDate { get; set; }
+    public string? FilePath { get; set; }
     public ICollection<DocumentItem> Items { get; set; } = new List<DocumentItem>();
 }

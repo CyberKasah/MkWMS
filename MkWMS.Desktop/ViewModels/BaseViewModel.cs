@@ -1,22 +1,23 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using MkWMS.API.DTOs;
-using MkWMS.Desktop.Models;
-using MkWMS.Desktop.Services;
-using System;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
+using System.Collections;
 using System.Linq;
+using System.ComponentModel.DataAnnotations;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class BaseViewModel : ObservableObject
+public partial class BaseViewModel : ObservableValidator
 {
     [ObservableProperty]
-    private bool isBusy;
+    [NotifyPropertyChangedFor(nameof(IsNotLoading))]
+    private bool _isLoading;
+
+    public bool IsNotLoading => !IsLoading;
 
     [ObservableProperty]
-    private string? errorMessage;
+    [NotifyPropertyChangedFor(nameof(HasError))]
+    private string? _errorMessage;
+
+    public bool HasError => !string.IsNullOrEmpty(ErrorMessage);
 
     protected void SetError(string message)
     {
@@ -27,4 +28,28 @@ public partial class BaseViewModel : ObservableObject
     {
         ErrorMessage = null;
     }
+
+    protected bool Validate()
+    {
+        ValidateAllProperties();
+
+        if (HasErrors)
+        {
+            var firstError = GetErrors()
+                .Cast<ValidationResult>()
+                .FirstOrDefault();
+
+            ErrorMessage = firstError?.ErrorMessage;
+            return false;
+        }
+
+        ClearError();
+        return true;
+    }
+    protected void ResetStatus()
+    {
+        IsLoading = false;
+        ClearError();
+    }
+
 }

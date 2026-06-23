@@ -52,16 +52,16 @@ public class StockBalancesController : ControllerBase
         var totalCount = await query.CountAsync();
 
         var data = await query
-            .Skip((req.Page - 1) * req.PageSize)
-            .Take(req.PageSize)
-            .Select(x => new StockBalanceDto
-            {
-                Id = x.Id,
-                ProductId = x.ProductId,
-                WarehouseId = x.WarehouseId,
-                BatchId = x.BatchId,
-                Quantity = x.Quantity
-            }).ToListAsync();
+    .Include(x => x.Product)
+    .Include(x => x.StorageLocation)
+    .Select(x => new StockBalanceDto
+    {
+        Id = x.Id,
+        ProductId = x.ProductId,
+        Quantity = x.Quantity,
+        LocationName = x.StorageLocation != null ? x.StorageLocation.Name : "—",
+        RfidTag = x.StorageLocation != null ? x.StorageLocation.RfidTag : null
+    }).ToListAsync();
 
         return Ok(new PagedResult<StockBalanceDto>
         {

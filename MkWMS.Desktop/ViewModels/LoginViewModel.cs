@@ -1,7 +1,9 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MkWMS.Desktop.Models;
 using MkWMS.Desktop.Services;
 using MkWMS.Desktop.Views;
+using MkWMS.Desktop.Views.Dialogs;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -13,159 +15,86 @@ public partial class LoginViewModel : BaseViewModel
 {
     private readonly ApiClient _apiClient;
     private readonly AuthService _authService;
+    private readonly NavigationService _navigation;
 
     public ApiClient ApiClient => _apiClient;
 
-    [ObservableProperty]
-    private string login = string.Empty;
+    [ObservableProperty] private string login = string.Empty;
+    [ObservableProperty] private string password = string.Empty;
+    [ObservableProperty] private bool isPasswordVisible;
 
-    [ObservableProperty]
-    private string password = string.Empty;
+    public string PasswordToggleText => IsPasswordVisible ? "Скрыть" : "Показать";
 
-    [ObservableProperty]
-    private bool isPasswordVisible = false;
-
-    public string PasswordToggleText =>
-        IsPasswordVisible ? "Скрыть пароль" : "Показать пароль";
-
-    partial void OnIsPasswordVisibleChanged(bool value)
-    {
-        OnPropertyChanged(nameof(PasswordToggleText));
-    }
-
-    public LoginViewModel(ApiClient apiClient, AuthService authService)
+    public LoginViewModel(ApiClient apiClient, AuthService authService, NavigationService navigation)
     {
         _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
         _authService = authService ?? throw new ArgumentNullException(nameof(authService));
+        _navigation = navigation ?? throw new ArgumentNullException(nameof(navigation));
     }
 
+    partial void OnIsPasswordVisibleChanged(bool value) => OnPropertyChanged(nameof(PasswordToggleText));
+
     [RelayCommand]
-    public void TogglePasswordVisibility()
-    {
-        IsPasswordVisible = !IsPasswordVisible;
-    }
+    private void TogglePasswordVisibility() => IsPasswordVisible = !IsPasswordVisible;
 
     [RelayCommand]
     private async Task LoginAsync()
     {
-        // Проверка пустых полей
         if (string.IsNullOrWhiteSpace(Login) || string.IsNullOrWhiteSpace(Password))
         {
-            MessageBox.Show(
-                "Введите логин и пароль",
-                "Ошибка входа",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error
-            );
             SetError("Введите логин и пароль");
             return;
         }
 
-        IsBusy = true;
+        IsLoading = true;
         ClearError();
 
         try
         {
-            var (success, message, requiresChange, token, user) =
-                await _apiClient.LoginAsync(Login, Password);
+            var (success, message, requiresChange, token, user) = await _apiClient.LoginAsync(Login, Password);
 
-            if (!success)
+            if (!success || user == null)
             {
-                string errorText = message ?? "Неверный логин или пароль. Проверьте введённые данные.";
-                MessageBox.Show(
-                    errorText,
-                    "Ошибка входа",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
-                );
-                SetError(errorText);
+                SetError(message ?? "Неверный логин или пароль");
                 return;
             }
 
-            if (user == null)
-            {
-                MessageBox.Show(
-                    "Ошибка получения данных пользователя от сервера. Попробуйте позже.",
-                    "Критическая ошибка",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error
-                );
-                SetError("Ошибка получения данных пользователя");
-                return;
-            }
+            _authService.SetUser(user.Login, user.Roles.Select(r => r.Name).ToList(), token ?? "", user.WarehouseId);
 
-            // Установка пользователя и ролей
-            _authService.SetUser(
-                user.Login,
-                user.Roles.Select(r => r.Name).ToList(),
-                token ?? "",
-                user.WarehouseId
-            );
-
-            // Проверка ролей (для отладки и уверенности)
             if (!_authService.Roles.Any())
             {
-                MessageBox.Show(
-                    "У пользователя нет ни одной роли. Обратитесь к администратору системы.",
-                    "Ошибка прав доступа",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning
-                );
+                SetError("У пользователя нет назначенных ролей");
                 return;
             }
 
-            // Если требуется смена пароля
             if (requiresChange)
             {
                 var changeVm = new ChangePasswordViewModel(_apiClient);
-                var changeWindow = new ChangePasswordWindow
-                {
-                    DataContext = changeVm,
-                    Owner = Application.Current.MainWindow
-                };
+                var changeWindow = new ChangePasswordWindow { DataContext = changeVm };
+                // Пытаемся найти текущее активное окно для задания владельца
+                changeWindow.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
 
                 if (changeWindow.ShowDialog() != true)
                 {
-                    MessageBox.Show(
-                        "Смена пароля отменена. Вход невозможен без смены пароля.",
-                        "Вход отменён",
-                        MessageBoxButton.OK,
-                        MessageBoxImage.Information
-                    );
+                    SetError("Вход невозможен без смены пароля");
                     return;
                 }
             }
 
-            // Успешный вход → открываем дашборд
-            var navigation = new NavigationService();
-            var dashboardVm = new DashboardViewModel(_apiClient, _authService, navigation);
-            var dashboard = new DashboardWindow
-            {
-                DataContext = dashboardVm
-            };
+            // Создаем Dashboard и открываем его окно
+            var dashboardVm = new DashboardViewModel(_apiClient, _authService, _navigation);
+            var dashboardWindow = new DashboardWindow { DataContext = dashboardVm };
 
-            Application.Current.MainWindow = dashboard;
-            dashboard.Show();
+            dashboardWindow.Show();
 
-            Application.Current.Windows
-                .OfType<LoginWindow>()
-                .FirstOrDefault()
-                ?.Close();
+            // Закрываем окно логина (ищем то, в котором сейчас находимся)
+            Application.Current.Windows.OfType<Window>()
+                .FirstOrDefault(w => w.DataContext == this)?.Close();
         }
         catch (Exception ex)
         {
-            string errorMsg = $"Произошла непредвиденная ошибка при входе:\n{ex.Message}";
-            MessageBox.Show(
-                errorMsg,
-                "Критическая ошибка",
-                MessageBoxButton.OK,
-                MessageBoxImage.Error
-            );
-            SetError($"Ошибка входа: {ex.Message}");
+            SetError($"Ошибка соединения: {ex.Message}");
         }
-        finally
-        {
-            IsBusy = false;
-        }
+        finally { IsLoading = false; }
     }
 }

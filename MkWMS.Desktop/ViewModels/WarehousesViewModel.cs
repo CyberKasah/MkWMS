@@ -1,60 +1,66 @@
-﻿// ViewModels/WarehousesViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Threading.Tasks;
+using System.Windows;
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
-using MkWMS.Data.Entities;
-using MkWMS.Desktop.Models;
 using MkWMS.Desktop.Services;
-using System;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class WarehousesViewModel : BaseViewModel
+public partial class WarehousesViewModel : BaseCrudViewModel<WarehouseDto>
 {
-    private readonly ApiClient _apiClient;
+    public DepartmentsViewModel DepartmentsVM { get; }
+    public StorageLocationsViewModel StorageLocationsVM { get; }
 
-    [ObservableProperty]
-    private ObservableCollection<WarehouseDto> warehouses = new();
-
-    [ObservableProperty]
-    private string searchText = string.Empty;
-
-    public WarehousesViewModel(ApiClient apiClient)
+    public WarehousesViewModel(ApiClient api) : base(api, "warehouses")
     {
-        _apiClient = apiClient;
+        DepartmentsVM = new DepartmentsViewModel(api);
+        StorageLocationsVM = new StorageLocationsViewModel(api);
         _ = LoadAsync();
     }
 
     [RelayCommand]
-    private async Task LoadAsync()
+    private void AddNew()
     {
-        IsBusy = true;
         ClearError();
-
-        try
+        SelectedItem = new WarehouseDto
         {
-            var req = new PagedRequestDto
+            Id = 0,
+            IsActive = true,
+            Name = string.Empty
+        };
+    }
+
+    [RelayCommand(CanExecute = nameof(IsEntitySelected))]
+    private async Task DeleteWarehouseAsync()
+    {
+        if (SelectedItem == null || SelectedItem.Id <= 0) return;
+
+        var result = MessageBox.Show(
+            $"Вы уверены, что хотите полностью удалить склад '{SelectedItem.Name}' и все связанные данные?",
+            "Внимание",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            await DeleteAsync();
+            if (string.IsNullOrEmpty(ErrorMessage))
             {
-                Page = 1,
-                PageSize = 50,
-                Search = SearchText
-            };
-
-            var result = await _apiClient.GetWarehousesAsync(req);
-            Warehouses = new ObservableCollection<WarehouseDto>(result?.Items ?? []);
-        }
-        catch (Exception ex)
-        {
-            SetError(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
+                MessageBox.Show("Склад удален.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
     }
 
-    [RelayCommand]
-    private void Refresh() => LoadAsync();
+    // Проверка, что выбран существующий в БД объект
+    private bool IsEntitySelected => SelectedItem != null && SelectedItem.Id > 0;
+
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (e.PropertyName == nameof(SelectedItem))
+        {
+            // Обновляем состояние кнопок при смене выбора
+            DeleteWarehouseCommand.NotifyCanExecuteChanged();
+        }
+    }
 }

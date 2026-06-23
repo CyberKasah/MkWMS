@@ -12,6 +12,13 @@ public class DocumentDto
     public int WarehouseId { get; set; }
     public int? DepartmentId { get; set; }
     public int CreatedByUserId { get; set; }
-
     public List<DocumentItemDto> Items { get; set; } = new();
+
+    // Новые поля
+    public int? CounterpartyId { get; set; }
+    public string? CounterpartyName { get; set; }
+    public string? ExternalNumber { get; set; }
+    public DateTime? ExternalDate { get; set; }
+    public string DocumentTypeName { get; set; } = string.Empty;
+    public string WarehouseName { get; set; } = string.Empty;
 }

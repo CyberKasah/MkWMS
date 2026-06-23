@@ -1,65 +1,53 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
-using MkWMS.Desktop.Models;
 using MkWMS.Desktop.Services;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class EditUserViewModel : ObservableObject
+public partial class EditUserViewModel : BaseViewModel
 {
     private readonly ApiClient _apiClient;
 
     public bool IsNew { get; }
 
     [ObservableProperty]
-    private UserDto user = new();
-
-    public ObservableCollection<WarehouseDto> Warehouses { get; set; } = new();
-
-    public ObservableCollection<RoleDto> Roles { get; set; } = new();
-
-    // Ссылка на ListBox для доступа к выбранным ролям
-    public ListBox? RolesListBox { get; set; }
+    private UserDto _user;
 
     [ObservableProperty]
-    private bool isBusy;
+    private string _password = string.Empty;
 
-    [ObservableProperty]
-    private string? errorMessage;
+    public ObservableCollection<WarehouseDto> Warehouses { get; } = new();
+    public ObservableCollection<RoleSelection> Roles { get; } = new();
 
-    // Конструктор для редактирования
+    public EditUserViewModel(ApiClient apiClient)
+    {
+        _apiClient = apiClient;
+        IsNew = true;
+        _user = new UserDto { IsActive = true };
+        _ = LoadDataAsync();
+    }
+
     public EditUserViewModel(ApiClient apiClient, UserDto existingUser)
     {
         _apiClient = apiClient;
         IsNew = false;
 
-        User = new UserDto
+        // Клонируем объект, чтобы правки в форме не отражались в списке до сохранения
+        _user = new UserDto
         {
             Id = existingUser.Id,
             Login = existingUser.Login,
-            FullName = existingUser.FullName ?? "",
-            IsActive = existingUser.IsActive ?? true,
-            WarehouseId = existingUser.WarehouseId
-        };
-
-        _ = LoadDataAsync();
-    }
-
-    // Конструктор для создания нового
-    public EditUserViewModel(ApiClient apiClient)
-    {
-        _apiClient = apiClient;
-        IsNew = true;
-
-        User = new UserDto
-        {
-            IsActive = true
+            FullName = existingUser.FullName,
+            IsActive = existingUser.IsActive,
+            WarehouseId = existingUser.WarehouseId,
+            Roles = existingUser.Roles?.ToList() ?? new List<RoleDto>()
         };
 
         _ = LoadDataAsync();
@@ -67,85 +55,60 @@ public partial class EditUserViewModel : ObservableObject
 
     private async Task LoadDataAsync()
     {
-        IsBusy = true;
-        ErrorMessage = null;
+        IsLoading = true;
+        ClearError();
 
         try
         {
-            // Склады
-            var req = new PagedRequestDto { Page = 1, PageSize = 100 };
-            var warehouses = await _apiClient.GetWarehousesAsync(req);
-            if (warehouses?.Items != null)
+            var warehousesTask = _apiClient.GetAllWarehousesAsync();
+            var rolesTask = _apiClient.GetRolesAsync();
+
+            await Task.WhenAll(warehousesTask, rolesTask);
+
+            Warehouses.Clear();
+            var warehouses = await warehousesTask;
+            if (warehouses != null)
             {
-                Warehouses = new ObservableCollection<WarehouseDto>(warehouses.Items);
+                foreach (var w in warehouses) Warehouses.Add(w);
             }
 
-            // Роли
-            var roles = await _apiClient.GetAllRolesAsync();
-            if (roles != null)
+            Roles.Clear();
+            var allRoles = await rolesTask ?? new List<RoleDto>();
+            foreach (var role in allRoles)
             {
-                Roles = new ObservableCollection<RoleDto>(roles);
+                var isSelected = User.Roles?.Any(ur => ur.Id == role.Id) ?? false;
+                Roles.Add(new RoleSelection { Role = role, IsSelected = isSelected });
             }
         }
-        catch (System.Exception ex)
-        {
-            ErrorMessage = $"Ошибка загрузки: {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        catch (Exception ex) { SetError($"Ошибка загрузки: {ex.Message}"); }
+        finally { IsLoading = false; }
     }
 
     [RelayCommand]
     private async Task SaveAsync()
     {
-        IsBusy = true;
-        ErrorMessage = null;
+        if (!Validate()) return;
+
+        IsLoading = true;
+        ClearError();
 
         try
         {
-            if (string.IsNullOrWhiteSpace(User.Login))
-            {
-                ErrorMessage = "Логин обязателен";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(User.FullName))
-            {
-                ErrorMessage = "ФИО обязательно";
-                return;
-            }
-
-            var selectedRoleIds = RolesListBox?.SelectedItems
-                .Cast<RoleDto>()
-                .Select(r => r.Id)
-                .Distinct()
-                .ToList() ?? new List<int>();
-
-            if (!selectedRoleIds.Any())
-            {
-                ErrorMessage = "Выберите хотя бы одну роль";
-                return;
-            }
+            var selectedRoleIds = Roles.Where(r => r.IsSelected).Select(r => r.Role.Id).ToList();
+            bool success;
 
             if (IsNew)
             {
                 var createDto = new CreateUserWithRolesDto
                 {
                     Login = User.Login,
-                    Password = "temp123", // ← временный пароль, если поле нет в XAML — замени на реальное или сделай поле
+                    Password = Password,
                     FullName = User.FullName,
-                    RoleIds = selectedRoleIds,
-                    WarehouseId = User.WarehouseId
+                    WarehouseId = User.WarehouseId,
+                    RoleIds = selectedRoleIds
                 };
-
-                var created = await _apiClient.CreateUserAsync(createDto);
-                if (created == null)
-                {
-                    ErrorMessage = "Не удалось создать пользователя";
-                    return;
-                }
+                var result = await _apiClient.CreateUserAsync(createDto);
+                success = result != null;
             }
             else
             {
@@ -156,46 +119,45 @@ public partial class EditUserViewModel : ObservableObject
                     WarehouseId = User.WarehouseId
                 };
 
-                var updated = await _apiClient.UpdateUserAsync(User.Id, updateDto);
-                if (!updated)
-                {
-                    ErrorMessage = "Не удалось обновить пользователя";
-                    return;
-                }
+                var updateTask = _apiClient.UpdateUserAsync(User.Id, updateDto);
+                var rolesTask = _apiClient.AssignRolesAsync(User.Id, selectedRoleIds);
 
-                var rolesAssigned = await _apiClient.AssignRolesAsync(User.Id, selectedRoleIds);
-                if (!rolesAssigned)
-                {
-                    ErrorMessage = "Не удалось обновить роли";
-                    return;
-                }
+                await Task.WhenAll(updateTask, rolesTask);
+                success = await updateTask && await rolesTask;
             }
 
-            var window = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.DataContext == this);
-            if (window != null)
-            {
-                window.DialogResult = true;
-                window.Close();
-            }
+            if (success) CloseWithResult(true);
+            else SetError("Сервер отклонил сохранение.");
         }
-        catch (System.Exception ex)
-        {
-            ErrorMessage = ex.Message;
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        catch (Exception ex) { SetError($"Ошибка API: {ex.Message}"); }
+        finally { IsLoading = false; }
+    }
+
+    private bool Validate()
+    {
+        if (string.IsNullOrWhiteSpace(User.Login)) { SetError("Логин обязателен"); return false; }
+        if (string.IsNullOrWhiteSpace(User.FullName)) { SetError("ФИО обязательно"); return false; }
+        if (IsNew && string.IsNullOrWhiteSpace(Password)) { SetError("Пароль обязателен"); return false; }
+        if (!Roles.Any(r => r.IsSelected)) { SetError("Выберите хотя бы одну роль"); return false; }
+        return true;
     }
 
     [RelayCommand]
-    private void Cancel()
+    private void Cancel() => CloseWithResult(false);
+
+    private void CloseWithResult(bool result)
     {
         var window = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.DataContext == this);
         if (window != null)
         {
-            window.DialogResult = false;
+            try { window.DialogResult = result; } catch { }
             window.Close();
         }
     }
+}
+
+public partial class RoleSelection : ObservableObject
+{
+    public required RoleDto Role { get; set; }
+    [ObservableProperty] private bool isSelected;
 }

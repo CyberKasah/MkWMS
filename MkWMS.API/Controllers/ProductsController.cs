@@ -9,7 +9,7 @@ namespace MkWMS.API.Controllers;
 
 [ApiController]
 [Route("api/products")]
-[Authorize]
+[Authorize] // По умолчанию просмотр разрешен всем вошедшим
 public class ProductsController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
@@ -20,6 +20,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
+    [HttpGet]
     public async Task<ActionResult<PagedResult<ProductDto>>> GetAll([FromQuery] PagedRequestDto req)
     {
         if (req.Page < 1) req.Page = 1;
@@ -27,8 +28,7 @@ public class ProductsController : ControllerBase
 
         var query = _context.Products.AsNoTracking().AsQueryable();
 
-        // Поиск
-        if (!string.IsNullOrWhiteSpace(req.Search))
+        if (!string.IsNullOrEmpty(req.Search) && req.Search.Trim().Length > 0)
         {
             var s = req.Search.ToLower().Trim();
             query = query.Where(p =>
@@ -37,18 +37,14 @@ public class ProductsController : ControllerBase
                 (p.Barcode != null && p.Barcode.ToLower().Contains(s)));
         }
 
-        // Сортировка
         query = req.SortBy?.ToLower() switch
         {
             "name" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
             "article" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(p => p.Article) : query.OrderBy(p => p.Article),
-            "barcode" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(p => p.Barcode) : query.OrderBy(p => p.Barcode),
-            "createddate" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(p => p.CreatedDate) : query.OrderBy(p => p.CreatedDate),
             _ => query.OrderBy(p => p.Id)
         };
 
         var totalCount = await query.CountAsync();
-
         var data = await query
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
@@ -61,17 +57,39 @@ public class ProductsController : ControllerBase
                 Unit = x.Unit,
                 UseSerialNumbers = x.UseSerialNumbers,
                 UseBatches = x.UseBatches,
-                CreatedDate = x.CreatedDate
+                CreatedDate = x.CreatedDate,
+                PurchasePrice = x.PurchasePrice,
+                RetailPrice = x.RetailPrice,
+                VatRate = x.VatRate,
+                IsMarked = x.IsMarked,
+                IsVet = x.IsVet
             })
             .ToListAsync();
 
-        return Ok(new PagedResult<ProductDto>
+        return Ok(new PagedResult<ProductDto> { Items = data, TotalCount = totalCount, Page = req.Page, PageSize = req.PageSize });
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> Get(int id)
+    {
+        var x = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
+        if (x == null) return NotFound();
+
+        return Ok(new ProductDto
         {
-            TotalCount = totalCount,
-            Page = req.Page,
-            PageSize = req.PageSize,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)req.PageSize),
-            Items = data
+            Id = x.Id,
+            Name = x.Name,
+            Article = x.Article,
+            Barcode = x.Barcode,
+            Unit = x.Unit,
+            UseSerialNumbers = x.UseSerialNumbers,
+            UseBatches = x.UseBatches,
+            CreatedDate = x.CreatedDate,
+            PurchasePrice = x.PurchasePrice,
+            RetailPrice = x.RetailPrice,
+            VatRate = x.VatRate,
+            IsMarked = x.IsMarked,
+            IsVet = x.IsVet
         });
     }
 
@@ -87,14 +105,20 @@ public class ProductsController : ControllerBase
             Unit = dto.Unit,
             UseSerialNumbers = dto.UseSerialNumbers,
             UseBatches = dto.UseBatches,
-            CreatedDate = DateTime.UtcNow
+            CreatedDate = DateTime.UtcNow,
+            // Сохранение цен
+            PurchasePrice = dto.PurchasePrice,
+            RetailPrice = dto.RetailPrice,
+            VatRate = dto.VatRate,
+            IsMarked = dto.IsMarked,
+            IsVet = dto.IsVet
         };
 
         _context.Products.Add(entity);
         await _context.SaveChangesAsync();
 
         dto.Id = entity.Id;
-        return CreatedAtAction(nameof(GetAll), new { id = dto.Id }, dto);
+        return CreatedAtAction(nameof(Get), new { id = entity.Id }, dto);
     }
 
     [HttpPut("{id}")]
@@ -110,10 +134,17 @@ public class ProductsController : ControllerBase
         entity.Unit = dto.Unit;
         entity.UseSerialNumbers = dto.UseSerialNumbers;
         entity.UseBatches = dto.UseBatches;
+        // Обновление цен
+        entity.PurchasePrice = dto.PurchasePrice;
+        entity.RetailPrice = dto.RetailPrice;
+        entity.VatRate = dto.VatRate;
+        entity.IsMarked = dto.IsMarked;
+        entity.IsVet = dto.IsVet;
 
         await _context.SaveChangesAsync();
         return NoContent();
     }
+
 
     [HttpDelete("{id}")]
     [Authorize(Policy = "AdminPolicy")]
@@ -128,26 +159,30 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet("by-barcode/{barcode}")]
-    [AllowAnonymous] // можно убрать, если нужен только авторизованный доступ
     public async Task<IActionResult> GetByBarcode(string barcode)
     {
-        var product = await _context.Products
+        var x = await _context.Products
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Barcode == barcode);
 
-        if (product == null)
+        if (x == null)
             return NotFound($"Товар со штрихкодом {barcode} не найден");
 
         return Ok(new ProductDto
         {
-            Id = product.Id,
-            Name = product.Name,
-            Article = product.Article,
-            Barcode = product.Barcode,
-            Unit = product.Unit,
-            UseSerialNumbers = product.UseSerialNumbers,
-            UseBatches = product.UseBatches,
-            CreatedDate = product.CreatedDate
+            Id = x.Id,
+            Name = x.Name,
+            Article = x.Article,
+            Barcode = x.Barcode,
+            Unit = x.Unit,
+            UseSerialNumbers = x.UseSerialNumbers,
+            UseBatches = x.UseBatches,
+            CreatedDate = x.CreatedDate,
+            PurchasePrice = x.PurchasePrice,
+            RetailPrice = x.RetailPrice,
+            VatRate = x.VatRate,
+            IsMarked = x.IsMarked,
+            IsVet = x.IsVet
         });
     }
 
@@ -164,34 +199,90 @@ public class ProductsController : ControllerBase
 <html>
 <head>
     <meta charset='utf-8'>
-    <title>Этикетка {product.Name}</title>
+    <title>Этикетки {product.Name}</title>
     <style>
-        body {{ font-family: Arial, sans-serif; margin:0; padding:10px; }}
-        .label {{ 
-            width: 100mm; height: 50mm; border: 1px solid #000; 
-            margin: 10px auto; padding: 8px; box-sizing: border-box; 
-            text-align: center; page-break-after: always;
+        body {{
+            margin: 0;
+            padding: 10mm;
+            font-family: Arial, sans-serif;
         }}
-        .name {{ font-size: 18px; font-weight: bold; margin: 4px 0; }}
-        .barcode {{ font-size: 24px; letter-spacing: 2px; margin: 8px 0; }}
-        img {{ max-width: 80%; height: auto; }}
+        .labels-grid {{
+            display: grid;
+            grid-template-columns: repeat(3, 100mm);  /* 3 в ряд */
+            grid-gap: 10mm 8mm;
+            justify-content: center;
+        }}
+        .label {{
+            width: 100mm;
+            height: 100mm;  /* КВАДРАТНЫЙ формат — QR большой и не обрезается */
+            border: 1px solid #000;
+            padding: 6mm;
+            box-sizing: border-box;
+            text-align: center;
+            page-break-inside: avoid;
+            overflow: hidden;
+            background: white;
+        }}
+        .name {{
+            font-size: 18px;
+            font-weight: bold;
+            margin: 2mm 0 1mm;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 88mm;
+        }}
+        .article {{
+            font-size: 14px;
+            margin: 1mm 0 3mm;
+        }}
+        .qr {{
+            width: 70mm;
+            height: 70mm;
+            margin: 4mm auto 3mm;
+        }}
+        .barcode {{
+            font-size: 16px;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin-top: 2mm;
+            white-space: nowrap;
+        }}
+        @media print {{
+            .labels-grid {{
+                grid-template-columns: repeat(3, 100mm);
+                grid-gap: 10mm 8mm;
+            }}
+            .label {{
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }}
+            body {{
+                padding: 0;
+                margin: 0;
+            }}
+        }}
     </style>
 </head>
 <body>
+    <div class='labels-grid'>
 ";
 
         for (int i = 0; i < qty; i++)
         {
             html += $@"
-    <div class='label'>
-        <div class='name'>{product.Name}</div>
-        <div>Арт: {product.Article ?? "—"}</div>
-        <img src='https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={Uri.EscapeDataString(product.Barcode ?? product.Article ?? product.Name)}' alt='QR'>
-        <div class='barcode'>{product.Barcode ?? "—"}</div>
-    </div>";
+        <div class='label'>
+            <div class='name'>{product.Name}</div>
+            <div class='article'>Арт: {product.Article ?? "—"}</div>
+            <img class='qr' src='https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={Uri.EscapeDataString(product.Barcode ?? product.Article ?? product.Name)}' alt='QR'>
+            <div class='barcode'>{product.Barcode ?? "—"}</div>
+        </div>";
         }
 
-        html += "</body></html>";
+        html += @"
+    </div>
+</body>
+</html>";
 
         return Content(html, "text/html");
     }

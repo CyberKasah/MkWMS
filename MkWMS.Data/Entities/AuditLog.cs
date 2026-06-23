@@ -13,4 +13,9 @@ public class AuditLog
     public string Action { get; set; } = null!;
     public DateTime ActionDate { get; set; }
     public User User { get; set; } = null!;
+
+    // НОВЫЕ ПОЛЯ
+    public string? EntityName { get; set; }
+    public string? EntityId { get; set; }
+    public string? ChangesJson { get; set; }
 }

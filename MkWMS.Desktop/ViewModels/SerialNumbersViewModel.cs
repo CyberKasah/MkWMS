@@ -1,60 +1,25 @@
-﻿// ViewModels/SerialNumbersViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
-using MkWMS.Data.Entities;
-using MkWMS.Desktop.Models;
 using MkWMS.Desktop.Services;
-using System;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class SerialNumbersViewModel : BaseViewModel
+public partial class SerialNumbersViewModel : BaseCrudViewModel<SerialNumberDto>
 {
-    private readonly ApiClient _apiClient;
-
-    [ObservableProperty]
-    private ObservableCollection<SerialNumberDto> serialNumbers = new();
-
-    [ObservableProperty]
-    private string searchText = string.Empty;
-
-    public SerialNumbersViewModel(ApiClient apiClient)
+    public SerialNumbersViewModel(ApiClient api) : base(api, "serialnumbers")
     {
-        _apiClient = apiClient;
         _ = LoadAsync();
     }
 
     [RelayCommand]
-    private async Task LoadAsync()
+    public void CreateNew()
     {
-        IsBusy = true;
         ClearError();
-
-        try
+        SelectedItem = new SerialNumberDto
         {
-            var req = new PagedRequestDto
-            {
-                Page = 1,
-                PageSize = 50,
-                Search = SearchText
-            };
-
-            var result = await _apiClient.GetSerialNumbersAsync(req);
-            SerialNumbers = new ObservableCollection<SerialNumberDto>(result?.Items ?? []);
-        }
-        catch (Exception ex)
-        {
-            SetError(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+            Id = 0,
+            Status = "НаСкладе",
+            Number = string.Empty
+        };
     }
-
-    [RelayCommand]
-    private void Refresh() => LoadAsync();
 }

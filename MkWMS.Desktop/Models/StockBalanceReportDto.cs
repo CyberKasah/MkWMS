@@ -12,4 +12,11 @@ public class StockBalanceReportDto
 
     public decimal Quantity { get; set; }
     public string Unit { get; set; } = "";
+    public decimal PurchasePrice { get; set; }
+    public decimal VatRate { get; set; } 
+    public decimal TotalValue { get; set; }
+    public decimal TotalVat { get; set; }
+    public string? LocationName { get; set; }
+    public string? RfidTag { get; set; }
+    public string? WarehouseName { get; set; }
 }

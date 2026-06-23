@@ -1,99 +1,42 @@
-﻿// ViewModels/UsersViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
-using MkWMS.Desktop.Models;
 using MkWMS.Desktop.Services;
-using System;
-using System.Collections.ObjectModel;
+using MkWMS.Desktop.Views.Dialogs;
 using System.Threading.Tasks;
 using System.Windows;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class UsersViewModel : BaseViewModel
+public partial class UsersViewModel : BaseCrudViewModel<UserDto>
 {
-    private readonly ApiClient _apiClient;
+    public RolesViewModel RolesVM { get; }
+    public AuditLogsViewModel AuditLogsVM { get; }
 
-    [ObservableProperty]
-    private ObservableCollection<UserDto> users = new();
-
-    [ObservableProperty]
-    private UserDto? selectedUser;
-
-    [ObservableProperty]
-    private string searchText = string.Empty;
-
-    public UsersViewModel(ApiClient apiClient)
+    public UsersViewModel(ApiClient api) : base(api, "users")
     {
-        _apiClient = apiClient;
+        RolesVM = new RolesViewModel(api);
+        AuditLogsVM = new AuditLogsViewModel(api);
         _ = LoadAsync();
     }
 
     [RelayCommand]
-    private async Task LoadAsync()
+    private async Task OpenEditDialogAsync(UserDto? user)
     {
-        IsBusy = true;
         ClearError();
 
-        try
+        // Используем защищенное поле _api из BaseCrudViewModel
+        var dialogVm = user == null
+            ? new EditUserViewModel(_api)
+            : new EditUserViewModel(_api, user);
+
+        var dialog = new EditUserDialog(dialogVm)
         {
-            var req = new PagedRequestDto
-            {
-                Page = 1,
-                PageSize = 50,
-                Search = SearchText
-            };
+            Owner = Application.Current.MainWindow
+        };
 
-            var result = await _apiClient.GetUsersAsync(req);
-            Users = new ObservableCollection<UserDto>(result?.Items ?? []);
-        }
-        catch (Exception ex)
+        if (dialog.ShowDialog() == true)
         {
-            SetError(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand]
-    private void Refresh() => LoadAsync();
-
-    [RelayCommand]
-    private void CreateUser() => MessageBox.Show("Создание пользователя будет добавлено позже", "Инфо");
-
-    [RelayCommand]
-    private void EditUser() => MessageBox.Show("Редактирование пользователя будет добавлено позже", "Инфо");
-
-    [RelayCommand]
-    private async Task DeleteUser()
-    {
-        if (SelectedUser == null) return;
-
-        if (MessageBox.Show($"Удалить пользователя {SelectedUser.Login}?", "Подтверждение",
-                MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.No)
-            return;
-
-        IsBusy = true;
-        ClearError();
-
-        try
-        {
-            var success = await _apiClient.DeleteUserAsync(SelectedUser.Id);
-            if (success)
-                await LoadAsync();
-            else
-                SetError("Не удалось удалить пользователя");
-        }
-        catch (Exception ex)
-        {
-            SetError(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
+            await LoadAsync();
         }
     }
 }

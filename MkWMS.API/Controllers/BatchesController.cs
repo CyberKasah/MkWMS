@@ -9,7 +9,7 @@ namespace MkWMS.API.Controllers;
 
 [ApiController]
 [Route("api/batches")]
-[Authorize]
+[Authorize] // Базовый доступ: любой авторизованный пользователь может просматривать данные
 public class BatchesController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
@@ -27,17 +27,25 @@ public class BatchesController : ControllerBase
 
         var query = _context.Batches.AsNoTracking().AsQueryable();
 
+        // Поиск по номеру партии
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
             var s = req.Search.ToLower().Trim();
             query = query.Where(x => x.BatchNumber.ToLower().Contains(s));
         }
 
+        // Сортировка
         query = req.SortBy?.ToLower() switch
         {
-            "batchnumber" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(x => x.BatchNumber) : query.OrderBy(x => x.BatchNumber),
-            "productiondate" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(x => x.ProductionDate) : query.OrderBy(x => x.ProductionDate),
-            "expirationdate" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(x => x.ExpirationDate) : query.OrderBy(x => x.ExpirationDate),
+            "batchnumber" => req.SortDirection?.ToLower() == "desc"
+                ? query.OrderByDescending(x => x.BatchNumber)
+                : query.OrderBy(x => x.BatchNumber),
+            "productiondate" => req.SortDirection?.ToLower() == "desc"
+                ? query.OrderByDescending(x => x.ProductionDate)
+                : query.OrderBy(x => x.ProductionDate),
+            "expirationdate" => req.SortDirection?.ToLower() == "desc"
+                ? query.OrderByDescending(x => x.ExpirationDate)
+                : query.OrderBy(x => x.ExpirationDate),
             _ => query.OrderBy(x => x.Id)
         };
 
@@ -52,7 +60,8 @@ public class BatchesController : ControllerBase
                 BatchNumber = x.BatchNumber,
                 ProductionDate = x.ProductionDate,
                 ExpirationDate = x.ExpirationDate,
-                ProductId = x.ProductId
+                ProductId = x.ProductId,
+                VsdUuid = x.VsdUuid
             }).ToListAsync();
 
         return Ok(new PagedResult<BatchDto>
@@ -68,20 +77,23 @@ public class BatchesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(int id)
     {
-        var entity = await _context.Batches.FindAsync(id);
+        // Используем AsNoTracking для более быстрого получения данных без кэширования в контексте
+        var entity = await _context.Batches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (entity == null) return NotFound();
+
         return Ok(new BatchDto
         {
             Id = entity.Id,
             BatchNumber = entity.BatchNumber,
             ProductionDate = entity.ProductionDate,
             ExpirationDate = entity.ExpirationDate,
-            ProductId = entity.ProductId
+            ProductId = entity.ProductId,
+            VsdUuid = entity.VsdUuid
         });
     }
 
     [HttpPost]
-    [Authorize(Policy = "AdminPolicy")]
+    [Authorize(Policy = "AdminPolicy")] // Только администраторы могут создавать партии
     public async Task<IActionResult> Create(BatchDto dto)
     {
         var entity = new Batch
@@ -89,18 +101,20 @@ public class BatchesController : ControllerBase
             BatchNumber = dto.BatchNumber,
             ProductionDate = dto.ProductionDate,
             ExpirationDate = dto.ExpirationDate,
-            ProductId = dto.ProductId
+            ProductId = dto.ProductId,
+            VsdUuid = dto.VsdUuid
         };
 
         _context.Batches.Add(entity);
         await _context.SaveChangesAsync();
 
         dto.Id = entity.Id;
-        return Ok(dto);
+        // Для CRUD-логики BaseCrudViewModel лучше возвращать созданный объект
+        return CreatedAtAction(nameof(Get), new { id = entity.Id }, dto);
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "AdminPolicy")]
+    [Authorize(Policy = "AdminPolicy")] // Только администраторы могут редактировать
     public async Task<IActionResult> Update(int id, BatchDto dto)
     {
         var entity = await _context.Batches.FindAsync(id);
@@ -110,13 +124,14 @@ public class BatchesController : ControllerBase
         entity.ProductionDate = dto.ProductionDate;
         entity.ExpirationDate = dto.ExpirationDate;
         entity.ProductId = dto.ProductId;
+        entity.VsdUuid = dto.VsdUuid;
 
         await _context.SaveChangesAsync();
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = "AdminPolicy")]
+    [Authorize(Policy = "AdminPolicy")] // Только администраторы могут удалять
     public async Task<IActionResult> Delete(int id)
     {
         var entity = await _context.Batches.FindAsync(id);

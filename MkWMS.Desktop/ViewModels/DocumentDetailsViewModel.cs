@@ -1,105 +1,107 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MkWMS.Desktop.Services;
-using MkWMS.Desktop.Views;
-using System.Windows;
-using System;
-using System.Threading.Tasks;
 using MkWMS.API.DTOs;
-using MkWMS.Desktop.Models;
+using MkWMS.Desktop.Services;
 using System;
 using System.Collections.ObjectModel;
-using System.Threading.Tasks;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MkWMS.Desktop.ViewModels;
 
 public partial class DocumentDetailsViewModel : BaseViewModel
 {
     private readonly ApiClient _apiClient;
+    private readonly NavigationService _navigation;
     private readonly int _documentId;
+    private readonly CounterpartiesViewModel _counterpartiesVM;
 
-    [ObservableProperty]
-    private DocumentDto document = new();
+    [ObservableProperty] private DocumentDto? _document;
 
-    public DocumentDetailsViewModel(ApiClient apiClient, int documentId)
+    // Список товаров внутри документа
+    [ObservableProperty] private ObservableCollection<DocumentItemDto> _items = new();
+
+    // Свойства для итогов (вычисляются на лету)
+    [ObservableProperty] private decimal _totalQuantity;
+    [ObservableProperty] private decimal _totalVat;
+    [ObservableProperty] private decimal _totalSum;
+
+    public DocumentDetailsViewModel(
+        ApiClient apiClient,
+        NavigationService navigation,
+        int documentId,
+        CounterpartiesViewModel counterpartiesVM)
     {
         _apiClient = apiClient;
+        _navigation = navigation;
         _documentId = documentId;
-        _ = LoadDocumentAsync();
+        _counterpartiesVM = counterpartiesVM;
+
+        _ = LoadDocumentDetailsAsync();
     }
 
     [RelayCommand]
-    private async Task LoadDocumentAsync()
+    private async Task LoadDocumentDetailsAsync()
     {
-        IsBusy = true;
+        if (IsLoading) return;
+        IsLoading = true;
         ClearError();
 
         try
         {
+            // Получаем полные данные документа по ID
             var doc = await _apiClient.GetDocumentByIdAsync(_documentId);
+
             if (doc != null)
+            {
                 Document = doc;
+
+                // Заполняем коллекцию товаров
+                Items.Clear();
+                if (doc.Items != null)
+                {
+                    foreach (var item in doc.Items)
+                    {
+                        Items.Add(item);
+                    }
+
+                    // Считаем итоги
+                    CalculateTotals();
+                }
+            }
             else
-                SetError("Документ не найден");
-        }
-        catch (Exception ex)
-        {
-            SetError(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    [RelayCommand]
-    private async Task PostDocumentAsync()
-    {
-        IsBusy = true;
-        ClearError();
-
-        try
-        {
-            var success = await _apiClient.PostDocumentAsync(_documentId);
-            if (success)
             {
-                MessageBox.Show("Документ успешно проведён!", "Успех");
-                await LoadDocumentAsync();
+                SetError("Не удалось загрузить детали документа");
             }
         }
         catch (Exception ex)
         {
-            SetError(ex.Message);
+            SetError($"Ошибка при загрузке: {ex.Message}");
         }
         finally
         {
-            IsBusy = false;
+            IsLoading = false;
         }
     }
 
-    [RelayCommand]
-    private async Task UnpostDocumentAsync()
+    private void CalculateTotals()
     {
-        IsBusy = true;
-        ClearError();
+        TotalQuantity = Items.Sum(x => x.Quantity);
+        TotalVat = Items.Sum(x => x.VatSum);
+        // Сумма = (Количество * Цена) + НДС (если цена уже включает НДС, логика меняется)
+        TotalSum = Items.Sum(x => (x.Quantity * (x.Price ?? 0)) + x.VatSum);
+    }
 
-        try
-        {
-            var success = await _apiClient.UnpostDocumentAsync(_documentId);
-            if (success)
-            {
-                MessageBox.Show("Проведение отменено", "Готово");
-                await LoadDocumentAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            SetError(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+    [RelayCommand]
+    private void GoBack()
+    {
+        // Возвращаемся назад, передавая сохраненную VM контрагентов для работы табов
+        _navigation.Navigate(new DocumentsViewModel(_apiClient, _navigation, _counterpartiesVM));
+    }
+
+    [RelayCommand]
+    private async Task Refresh()
+    {
+        await LoadDocumentDetailsAsync();
     }
 }

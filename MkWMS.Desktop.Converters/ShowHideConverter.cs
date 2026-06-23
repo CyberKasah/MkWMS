@@ -1,21 +1,21 @@
-using System;
+﻿using System;
 using System.Globalization;
-using System.Windows;
 using System.Windows.Data;
 
-namespace MkWMS.Desktop.Converters
-{
-    public class ShowHideConverter : IValueConverter
-    {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        {
-            bool isVisible = value is bool b && b;
-            return isVisible ? Visibility.Visible : Visibility.Collapsed;
-        }
+namespace MkWMS.Desktop.Converters;
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+public class ShowHideConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is bool isVisible)
         {
-            return value is Visibility visibility && visibility == Visibility.Visible;
+            // По умолчанию возвращаем "показать" (глаз) когда пароль скрыт
+            return isVisible ? "🙈" : "👁️";
         }
+        return "👁️";
     }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
 }

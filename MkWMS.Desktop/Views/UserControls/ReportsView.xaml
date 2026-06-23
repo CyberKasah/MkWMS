@@ -3,49 +3,181 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
              mc:Ignorable="d"
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="720" d:DesignWidth="1280">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
 
-    <Grid Margin="20">
+        <Style TargetType="DatePicker">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="{StaticResource Surface}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{StaticResource ContentTextPrimary}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource Primary}"/>
+                </Trigger>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter Property="BorderBrush" Value="{StaticResource Primary}"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="20,12,20,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-            <Button Content="Обновить отчёты" Command="{Binding RefreshCommand}" Padding="14,8"/>
+            <TextBlock Text="Отчёты" 
+                       Style="{StaticResource HeaderText}" 
+                       FontSize="26" 
+                       Margin="0,0,30,0" 
+                       VerticalAlignment="Center"/>
+            <Button Content="Обновить всё"
+                    Command="{Binding LoadAllCommand}"
+                    Style="{StaticResource PrimaryButton}"
+                    Width="140" Height="42" Margin="0,0,12,0"
+                    IsEnabled="{Binding IsNotLoading}"/>
+            <Button Content="Экспорт остатков → Excel"
+                    Command="{Binding ExportBalancesCommand}"
+                    Style="{StaticResource OutlineButton}"
+                    Width="210" Height="42" Margin="0,0,12,0"/>
+            <Button Content="Экспорт движений → Excel"
+                    Command="{Binding ExportMovementsCommand}"
+                    Style="{StaticResource OutlineButton}"
+                    Width="210" Height="42" Margin="0,0,12,0"/>
+            <Button Content="Импорт товаров из Excel"
+                    Command="{Binding ImportProductsCommand}"
+                    Style="{StaticResource OutlineButton}"
+                    Width="210" Height="42"/>
         </StackPanel>
 
-        <GroupBox Grid.Row="1" Header="Остатки" Margin="0,0,0,12">
-            <DataGrid ItemsSource="{Binding StockBalances}" AutoGenerateColumns="False" IsReadOnly="True">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Товар" Binding="{Binding Product}" Width="*"/>
-                    <DataGridTextColumn Header="Склад" Binding="{Binding Warehouse}" Width="180"/>
-                    <DataGridTextColumn Header="Партия" Binding="{Binding Batch}" Width="140"/>
-                    <DataGridTextColumn Header="Количество" Binding="{Binding Quantity}" Width="120"/>
-                    <DataGridTextColumn Header="Ед." Binding="{Binding Unit}" Width="80"/>
-                </DataGrid.Columns>
-            </DataGrid>
-        </GroupBox>
+        <TabControl Grid.Row="1" Style="{StaticResource MaterialTabControl}">
+            <TabItem Header="Остатки на складе">
+                <Border Style="{StaticResource CardStyle}" Padding="8" Margin="0,10,0,0">
+                    <DataGrid ItemsSource="{Binding StockBalances}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Single"
+                              GridLinesVisibility="None"
+                              RowHeight="46"
+                              AlternatingRowBackground="#FAFAFA">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Товар" Binding="{Binding Product}" Width="2*"/>
+                            <DataGridTextColumn Header="Склад" Binding="{Binding Warehouse}" Width="150"/>
+                            <DataGridTextColumn Header="Партия" Binding="{Binding Batch}" Width="120"/>
+                            <DataGridTextColumn Header="Место (Ячейка)" Binding="{Binding LocationName}" Width="140"/>
+                            <DataGridTextColumn Header="RFID" Binding="{Binding RfidTag}" Width="110"/>
+                            <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity, StringFormat=N2}" Width="100" ElementStyle="{StaticResource CenterText}"/>
+                            <DataGridTextColumn Header="Ед." Binding="{Binding Unit}" Width="50"/>
+                            <DataGridTextColumn Header="Закуп. цена" Binding="{Binding PurchasePrice, StringFormat=N2}" Width="110" ElementStyle="{StaticResource CenterText}"/>
+                            <DataGridTextColumn Header="Сумма" Binding="{Binding TotalValue, StringFormat=N2}" Width="120" ElementStyle="{StaticResource CenterText}"/>
+                            <DataGridTextColumn Header="НДС" Binding="{Binding TotalVat, StringFormat=N2}" Width="90" ElementStyle="{StaticResource CenterText}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </TabItem>
 
-        <GroupBox Grid.Row="2" Header="Движения">
-            <DataGrid ItemsSource="{Binding Movements}" AutoGenerateColumns="False" IsReadOnly="True">
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="Дата" Binding="{Binding Date, StringFormat=dd.MM.yyyy HH:mm}" Width="160"/>
-                    <DataGridTextColumn Header="Документ" Binding="{Binding Document}" Width="180"/>
-                    <DataGridTextColumn Header="Товар" Binding="{Binding Product}" Width="*"/>
-                    <DataGridTextColumn Header="Склад" Binding="{Binding Warehouse}" Width="160"/>
-                    <DataGridTextColumn Header="Количество" Binding="{Binding Quantity}" Width="120"/>
-                    <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="120"/>
-                </DataGrid.Columns>
-            </DataGrid>
-        </GroupBox>
+            <TabItem Header="Движения товаров">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="3"
-                   Margin="0,12,0,0"
-                   Text="{Binding ErrorMessage}"
-                   Foreground="{StaticResource Danger}"/>
+                    <Border Grid.Row="0" 
+                            Background="{StaticResource SurfaceHover}" 
+                            CornerRadius="10" 
+                            Margin="0,0,0,12" 
+                            Padding="18,12"
+                            Effect="{StaticResource Elevation1}">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Период с:" 
+                                       VerticalAlignment="Center" 
+                                       Margin="0,0,10,0" 
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                            <DatePicker SelectedDate="{Binding FromDate}" 
+                                        Width="148"
+                                        Margin="0,0,24,0"/>
+                            <TextBlock Text="по:" 
+                                       VerticalAlignment="Center" 
+                                       Margin="0,0,10,0" 
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextSecondary}"/>
+                            <DatePicker SelectedDate="{Binding ToDate}" 
+                                        Width="148"
+                                        Margin="0,0,24,0"/>
+                            <Button Content="Применить"
+                                    Command="{Binding LoadAllCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Width="128" 
+                                    Height="34"
+                                    Margin="0,0,24,0"/>
+                            <TextBlock Text="* данные за указанный период"
+                                       FontStyle="Italic" 
+                                       Foreground="{StaticResource ContentTextSecondary}"
+                                       FontSize="12.5" 
+                                       VerticalAlignment="Center"
+                                       Margin="8,0,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Padding="8">
+                        <DataGrid ItemsSource="{Binding Movements}"
+                                  AutoGenerateColumns="False"
+                                  IsReadOnly="True"
+                                  SelectionMode="Single"
+                                  GridLinesVisibility="None"
+                                  RowHeight="46"
+                                  AlternatingRowBackground="#FAFAFA">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Дата" Binding="{Binding Date, StringFormat=dd.MM.yyyy HH:mm}" Width="145"/>
+                                <DataGridTextColumn Header="Документ" Binding="{Binding Document}" Width="130"/>
+                                <DataGridTextColumn Header="Товар" Binding="{Binding Product}" Width="2*"/>
+                                <DataGridTextColumn Header="Склад" Binding="{Binding Warehouse}" Width="130"/>
+                                <DataGridTextColumn Header="Тип" Binding="{Binding Type}" Width="110">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                            <Setter Property="HorizontalAlignment" Value="Center"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Кол-во" Binding="{Binding Quantity, StringFormat=N2}" Width="90" ElementStyle="{StaticResource CenterText}"/>
+                                <DataGridTextColumn Header="Цена" Binding="{Binding Price, StringFormat=N2}" Width="100" ElementStyle="{StaticResource CenterText}"/>
+                                <DataGridTextColumn Header="Сумма" Binding="{Binding TotalValue, StringFormat=N2}" Width="120" ElementStyle="{StaticResource CenterText}"/>
+                                <DataGridTextColumn Header="Место" Binding="{Binding LocationName}" Width="130"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Border>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <StackPanel Grid.Row="2" Margin="0,12,0,10">
+            <ProgressBar Height="4" 
+                         IsIndeterminate="{Binding IsLoading}"
+                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
+                         Foreground="{StaticResource Primary}"
+                         Background="Transparent" 
+                         BorderThickness="0"/>
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{StaticResource Danger}"
+                       Margin="0,8,0,0"
+                       HorizontalAlignment="Center"
+                       FontWeight="Medium"
+                       Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}"/>
+        </StackPanel>
     </Grid>
 </UserControl>

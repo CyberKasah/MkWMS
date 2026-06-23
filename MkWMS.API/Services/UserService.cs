@@ -40,47 +40,51 @@ public class UserService
     // Получить пользователя по ID с ролями
     public async Task<UserDto?> GetByIdWithRolesAsync(int id)
     {
-        var user = await _context.Users
-            .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Id == id);
-        if (user == null) return null;
-        return new UserDto
-        {
-            Id = user.Id,
-            Login = user.Login,
-            FullName = user.FullName,
-            IsActive = user.IsActive,
-            CreatedDate = user.CreatedDate,
-            Roles = user.UserRoles.Select(ur => new RoleDto
+        return await _context.Users
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .Include(u => u.Warehouse) // Добавляем Include для склада
+            .Where(u => u.Id == id)
+            .Select(u => new UserDto
             {
-                Id = ur.Role.Id,
-                Name = ur.Role.Name
-            }).ToList()
-        };
+                Id = u.Id,
+                Login = u.Login,
+                FullName = u.FullName,
+                IsActive = u.IsActive,
+                CreatedDate = u.CreatedDate,
+                WarehouseId = u.WarehouseId, // Мапим ID
+                WarehouseName = u.Warehouse != null ? u.Warehouse.Name : "Не назначен", // Мапим Имя
+                Roles = u.UserRoles.Select(ur => new RoleDto
+                {
+                    Id = ur.Role.Id,
+                    Name = ur.Role.Name
+                }).ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     // Получить пользователя по логину с ролями
     public async Task<UserDto?> GetByLoginWithRolesAsync(string login)
     {
-        var user = await _context.Users
-            .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Login == login);
-        if (user == null) return null;
-        return new UserDto
-        {
-            Id = user.Id,
-            Login = user.Login,
-            FullName = user.FullName,
-            IsActive = user.IsActive,
-            CreatedDate = user.CreatedDate,
-            Roles = user.UserRoles.Select(ur => new RoleDto
+        return await _context.Users
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .Include(u => u.Warehouse) // Добавляем Include
+            .Where(u => u.Login == login)
+            .Select(u => new UserDto
             {
-                Id = ur.Role.Id,
-                Name = ur.Role.Name
-            }).ToList()
-        };
+                Id = u.Id,
+                Login = u.Login,
+                FullName = u.FullName,
+                IsActive = u.IsActive,
+                CreatedDate = u.CreatedDate,
+                WarehouseId = u.WarehouseId,
+                WarehouseName = u.Warehouse != null ? u.Warehouse.Name : "Не назначен",
+                Roles = u.UserRoles.Select(ur => new RoleDto
+                {
+                    Id = ur.Role.Id,
+                    Name = ur.Role.Name
+                }).ToList()
+            })
+            .FirstOrDefaultAsync();
     }
 
     // Создать пользователя с ролями
@@ -267,13 +271,15 @@ public class UserService
                 FullName = u.FullName,
                 IsActive = u.IsActive,
                 CreatedDate = u.CreatedDate,
-                Roles = u.UserRoles
-                    .Select(ur => new RoleDto
-                    {
-                        Id = ur.Role.Id,
-                        Name = ur.Role.Name
-                    })
-                    .ToList()
+                // ДОБАВЛЯЕМ ЭТИ СТРОКИ:
+                WarehouseId = u.WarehouseId,
+                WarehouseName = u.Warehouse != null ? u.Warehouse.Name : "Не назначен",
+                // --------------------
+                Roles = u.UserRoles.Select(ur => new RoleDto
+                {
+                    Id = ur.Role.Id,
+                    Name = ur.Role.Name
+                }).ToList()
             })
             .ToListAsync();
         return new PagedResult<UserDto>

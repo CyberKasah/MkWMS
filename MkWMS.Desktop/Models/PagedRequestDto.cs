@@ -1,4 +1,4 @@
-﻿namespace MkWMS.Desktop.Models;
+﻿namespace MkWMS.API.DTOs;
 
 public class PagedRequestDto
 {

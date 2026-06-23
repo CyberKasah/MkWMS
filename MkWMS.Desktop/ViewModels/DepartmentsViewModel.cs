@@ -1,63 +1,52 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using MkWMS.Desktop.Services;
-using MkWMS.Desktop.Views;
-using System.Windows;
-using System;
-using System.Threading.Tasks;
 using MkWMS.API.DTOs;
-using MkWMS.Desktop.Models;
-using System;
+using MkWMS.Desktop.Services;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class DepartmentsViewModel : BaseViewModel
+public partial class DepartmentsViewModel : BaseCrudViewModel<DepartmentDto>
 {
-    private readonly ApiClient _apiClient;
-
     [ObservableProperty]
-    private ObservableCollection<DepartmentDto> departments = new();
+    private ObservableCollection<WarehouseDto> _warehouses = new();
 
-    [ObservableProperty]
-    private string searchText = string.Empty;
-
-    public DepartmentsViewModel(ApiClient apiClient)
+    public DepartmentsViewModel(ApiClient api) : base(api, "departments")
     {
-        _apiClient = apiClient;
-        _ = LoadAsync();
+        // Загружаем таблицу Departments И СКЛАДЫ одновременно (параллельно)
+        // → DataGrid начинает загружаться СРАЗУ при создании ViewModel
+        _ = Task.WhenAll(
+            LoadAsync(),           // таблица Departments (Items)
+            LoadWarehousesAsync()  // справочник складов (для ComboBox)
+        );
     }
 
-    [RelayCommand]
-    private async Task LoadAsync()
+    private async Task LoadWarehousesAsync()
     {
-        IsBusy = true;
-        ClearError();
-
         try
         {
-            var req = new PagedRequestDto
+            var result = await _api.GetPagedAsync<WarehouseDto>("warehouses", new PagedRequestDto { PageSize = 100 });
+            if (result?.Items != null)
             {
-                Page = 1,
-                PageSize = 50,
-                Search = SearchText
-            };
-
-            var result = await _apiClient.GetDepartmentsAsync(req);
-            Departments = new ObservableCollection<DepartmentDto>(result?.Items ?? []);
+                Warehouses = new ObservableCollection<WarehouseDto>(result.Items);
+            }
         }
-        catch (Exception ex)
+        catch (System.Exception ex)
         {
-            SetError(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
+            SetError($"Ошибка загрузки списка складов: {ex.Message}");
         }
     }
 
     [RelayCommand]
-    private void Refresh() => LoadAsync();
+    public void CreateNew()
+    {
+        ClearError();
+        SelectedItem = new DepartmentDto
+        {
+            Id = 0,
+            Name = string.Empty,
+            WarehouseId = 0
+        };
+    }
 }

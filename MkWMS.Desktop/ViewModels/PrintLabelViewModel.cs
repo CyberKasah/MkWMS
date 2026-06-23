@@ -1,12 +1,22 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
+using MkWMS.Desktop.Services;
+using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class PrintLabelViewModel : ObservableObject
+/// <summary>
+/// ViewModel диалогового окна печати этикетки для товара
+/// </summary>
+public partial class PrintLabelViewModel : BaseViewModel
 {
+    private readonly ApiClient _api;
+    private readonly int _productId;
+
     [ObservableProperty]
     private string productName = string.Empty;
 
@@ -16,63 +26,69 @@ public partial class PrintLabelViewModel : ObservableObject
     [ObservableProperty]
     private int quantity = 1;
 
-    [ObservableProperty]
-    private bool isBusy;
-
-    [ObservableProperty]
-    private string? errorMessage;
-
-    private readonly int _productId;
-
-    public PrintLabelViewModel(ProductDto product)
+    public PrintLabelViewModel(ApiClient api, ProductDto product)
     {
+        _api = api ?? throw new ArgumentNullException(nameof(api));
         _productId = product.Id;
+
         ProductName = product.Name;
         Barcode = product.Barcode ?? product.Article ?? "—";
         Quantity = 1;
     }
 
     [RelayCommand]
-    private void Print()
+    private async Task PrintAsync()
     {
         if (Quantity < 1)
         {
-            ErrorMessage = "Количество должно быть больше 0";
+            SetError("Количество должно быть больше 0");
             return;
         }
 
-        IsBusy = true;
-        ErrorMessage = null;
+        IsLoading = true;
+        ClearError();
 
         try
         {
+            // Формируем URL для печати (предполагаем, что эндпоинт уже есть в ApiClient)
+            // Если у тебя в ApiClient есть метод GetPrintFormAsync — лучше использовать его
             var url = $"https://localhost:7000/api/products/label/{_productId}?qty={Quantity}";
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
 
-            var window = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.DataContext == this);
-            if (window != null)
-            {
-                window.DialogResult = true;
-                window.Close();
-            }
+            // Вариант 1: Открываем в браузере (как было раньше)
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+
+            // Вариант 2 (рекомендуемый): если в ApiClient есть метод для получения PDF/печати
+            // var pdfBytes = await _api.GetPrintFormAsync(_productId, "label", Quantity);
+            // if (pdfBytes != null) { /* сохранить или отправить на принтер */ }
+
+            // Закрываем диалог с успехом
+            CloseDialog(true);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            ErrorMessage = $"Ошибка печати: {ex.Message}";
+            SetError($"Ошибка при запуске печати: {ex.Message}");
         }
         finally
         {
-            IsBusy = false;
+            IsLoading = false;
         }
     }
 
     [RelayCommand]
     private void Cancel()
     {
-        var window = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.DataContext == this);
+        CloseDialog(false);
+    }
+
+    private void CloseDialog(bool result)
+    {
+        var window = Application.Current.Windows
+            .OfType<Window>()
+            .FirstOrDefault(w => w.DataContext == this);
+
         if (window != null)
         {
-            window.DialogResult = false;
+            window.DialogResult = result;
             window.Close();
         }
     }

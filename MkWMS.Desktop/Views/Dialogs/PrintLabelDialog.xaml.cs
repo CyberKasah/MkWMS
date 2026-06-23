@@ -1,13 +1,14 @@
-﻿using System.Windows;
-using MkWMS.Desktop.ViewModels;
+﻿using MkWMS.Desktop.ViewModels;
+using System.Windows;
 
-namespace MkWMS.Desktop.Views.Dialogs;
-
-public partial class PrintLabelDialog : Window
+namespace MkWMS.Desktop.Views.Dialogs
 {
-    public PrintLabelDialog(PrintLabelViewModel vm)
+    public partial class PrintLabelDialog : Window
     {
-        InitializeComponent();
-        DataContext = vm;
+        public PrintLabelDialog(PrintLabelViewModel viewModel)
+        {
+            InitializeComponent();
+            DataContext = viewModel;   // ← это ключевая строка!
+        }
     }
 }

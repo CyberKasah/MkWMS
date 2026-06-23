@@ -67,4 +67,76 @@ public class DepartmentsController : ControllerBase
             Items = data
         });
     }
+
+    [HttpGet("{id}")]
+    public async Task<ActionResult<DepartmentDto>> GetById(int id)
+    {
+        var department = await _context.Departments
+            .AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == id);
+
+        if (department == null) return NotFound();
+
+        // Проверка прав (если нужно ограничить доступ по складу)
+        if (!_currentUser.IsAdmin && _currentUser.WarehouseId != department.WarehouseId)
+            return Forbid();
+
+        return Ok(new DepartmentDto
+        {
+            Id = department.Id,
+            Name = department.Name,
+            WarehouseId = department.WarehouseId
+        });
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<DepartmentDto>> Create([FromBody] DepartmentDto dto)
+    {
+        var department = new MkWMS.Data.Entities.Department // Укажите правильный namespace вашей сущности
+        {
+            Name = dto.Name,
+            WarehouseId = dto.WarehouseId
+        };
+
+        _context.Departments.Add(department);
+        await _context.SaveChangesAsync();
+
+        dto.Id = department.Id;
+        return CreatedAtAction(nameof(GetById), new { id = department.Id }, dto);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<ActionResult> Update(int id, [FromBody] DepartmentDto dto)
+    {
+        if (id != dto.Id) return BadRequest("ID mismatch");
+
+        var department = await _context.Departments.FindAsync(id);
+        if (department == null) return NotFound();
+
+        // Проверка прав
+        if (!_currentUser.IsAdmin && _currentUser.WarehouseId != department.WarehouseId)
+            return Forbid();
+
+        department.Name = dto.Name;
+        department.WarehouseId = dto.WarehouseId;
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<ActionResult> Delete(int id)
+    {
+        var department = await _context.Departments.FindAsync(id);
+        if (department == null) return NotFound();
+
+        // Проверка прав
+        if (!_currentUser.IsAdmin && _currentUser.WarehouseId != department.WarehouseId)
+            return Forbid();
+
+        _context.Departments.Remove(department);
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }

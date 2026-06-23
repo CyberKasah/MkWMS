@@ -16,4 +16,11 @@ public class Product
     public bool UseSerialNumbers { get; set; }
     public bool UseBatches { get; set; }
     public DateTime CreatedDate { get; set; }
+    public string? RfidBaseTag { get; set; }
+    public decimal PurchasePrice { get; set; }
+    public decimal RetailPrice { get; set; }
+    public decimal VatRate { get; set; } = 22;
+    public bool IsMarked { get; set; } = false;
+    public bool IsVet { get; set; } = false;
 }
+    

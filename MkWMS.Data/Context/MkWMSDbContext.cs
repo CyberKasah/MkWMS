@@ -23,145 +23,273 @@ public class MkWMSDbContext : DbContext
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<StockBalance> StockBalances => Set<StockBalance>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+    public DbSet<StorageLocation> StorageLocations => Set<StorageLocation>();
+    public DbSet<Counterparty> Counterparties => Set<Counterparty>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // ===== РОЛИ =====
+        modelBuilder.Entity<Role>(entity =>
+        {
+            entity.ToTable("Роли");
+            entity.Property(p => p.Name).HasColumnName("Название");
+        });
+
+        // ===== ПОЛЬЗОВАТЕЛИ =====
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.ToTable("Пользователи");
+            entity.Property(p => p.Login).HasColumnName("Логин");
+            entity.Property(p => p.PasswordHash).HasColumnName("ХешПароля");
+            entity.Property(p => p.FullName).HasColumnName("ФИО");
+            entity.Property(p => p.IsActive).HasColumnName("Активен");
+
+            // ИСПРАВЛЕНО: Добавлено значение по умолчанию для даты, чтобы избежать ошибки datetime2
+            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("GETDATE()");
+            entity.Property(u => u.RequiresPasswordChange).HasColumnName("ТребуетсяСменаПароля");
+
+            entity.HasIndex(u => u.Login).IsUnique().HasDatabaseName("UX_Пользователь_Логин");
+            entity.HasOne(u => u.Warehouse).WithMany().HasForeignKey(u => u.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ===== ПОЛЬЗОВАТЕЛИ-РОЛИ =====
         modelBuilder.Entity<UserRole>(entity =>
         {
             entity.ToTable("ПользователиРоли");
-            entity.HasKey(ur => ur.Id);  // если есть PK Id
+            entity.HasKey(ur => ur.Id);
             entity.Property(ur => ur.UserId).HasColumnName("ПользовательId");
             entity.Property(ur => ur.RoleId).HasColumnName("РольId");
+
             entity.HasOne(ur => ur.User).WithMany(u => u.UserRoles).HasForeignKey(ur => ur.UserId);
             entity.HasOne(ur => ur.Role).WithMany(r => r.UserRoles).HasForeignKey(ur => ur.RoleId);
+            entity.HasIndex(ur => new { ur.UserId, ur.RoleId }).IsUnique().HasDatabaseName("UX_Пользователь_Роль");
         });
-        modelBuilder.Entity<UserRole>().HasIndex(ur => new { ur.UserId, ur.RoleId }).IsUnique().HasDatabaseName("UX_Пользователь_Роль");
-        // Убедись, что User и Role тоже правильно настроены
-        modelBuilder.Entity<User>().ToTable("Пользователи");
-        modelBuilder.Entity<User>().HasOne(u => u.Warehouse).WithMany().HasForeignKey(u => u.WarehouseId).OnDelete(DeleteBehavior.Restrict);
-        modelBuilder.Entity<Role>().ToTable("Роли");
-        modelBuilder.Entity<Role>().Property(p => p.Name).HasColumnName("Название");
 
-        // ===== ПОЛЬЗОВАТЕЛИ =====
-        modelBuilder.Entity<User>().ToTable("Пользователи");
-        modelBuilder.Entity<User>().Property(p => p.Login).HasColumnName("Логин");
-        modelBuilder.Entity<User>().HasIndex(u => u.Login).IsUnique().HasDatabaseName("UX_Пользователь_Логин");
-        modelBuilder.Entity<User>().Property(p => p.PasswordHash).HasColumnName("ХешПароля");
-        modelBuilder.Entity<User>().Property(p => p.FullName).HasColumnName("ФИО");
-        modelBuilder.Entity<User>().Property(p => p.IsActive).HasColumnName("Активен");
-        modelBuilder.Entity<User>().Property(p => p.CreatedDate).HasColumnName("ДатаСоздания");
-        modelBuilder.Entity<User>().Property(u => u.RequiresPasswordChange).HasColumnName("ТребуетсяСменаПароля");
-
-        // ===== USER ROLES =====
-        modelBuilder.Entity<UserRole>().ToTable("ПользователиРоли");
+        // ===== КОНТРАГЕНТЫ =====
+        modelBuilder.Entity<Counterparty>(entity =>
+        {
+            entity.ToTable("Контрагенты");
+            entity.Property(p => p.Name).HasColumnName("Название");
+            entity.Property(p => p.IsSupplier).HasColumnName("Поставщик");
+            entity.Property(p => p.IsCustomer).HasColumnName("Покупатель");
+            entity.Property(p => p.Address).HasColumnName("Адрес");
+        });
 
         // ===== СКЛАДЫ =====
-        modelBuilder.Entity<Warehouse>().ToTable("Склады");
-        modelBuilder.Entity<Warehouse>().Property(p => p.Name).HasColumnName("Название");
-        modelBuilder.Entity<Warehouse>().Property(p => p.Address).HasColumnName("Адрес");
-        modelBuilder.Entity<Warehouse>().Property(p => p.IsActive).HasColumnName("Активен");
+        modelBuilder.Entity<Warehouse>(entity =>
+        {
+            entity.ToTable("Склады");
+            entity.Property(p => p.Name).HasColumnName("Название");
+            entity.Property(p => p.Address).HasColumnName("Адрес");
+            entity.Property(p => p.IsActive).HasColumnName("Активен");
+        });
 
         // ===== ПОДРАЗДЕЛЕНИЯ =====
-        modelBuilder.Entity<Department>().ToTable("Подразделения");
-        modelBuilder.Entity<Department>().Property(p => p.Name).HasColumnName("Название");
-        modelBuilder.Entity<Department>().Property(p => p.WarehouseId).HasColumnName("СкладId");
-        modelBuilder.Entity<Department>().HasOne(d => d.Warehouse).WithMany(w => w.Departments).HasForeignKey(d => d.WarehouseId).OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<Department>(entity =>
+        {
+            entity.ToTable("Подразделения");
+            entity.Property(p => p.Name).HasColumnName("Название");
+            entity.Property(p => p.WarehouseId).HasColumnName("СкладId");
+            entity.HasOne(d => d.Warehouse).WithMany(w => w.Departments).HasForeignKey(d => d.WarehouseId).OnDelete(DeleteBehavior.Cascade);
+        });
 
         // ===== ТИПЫ ДОКУМЕНТОВ =====
-        modelBuilder.Entity<DocumentType>().ToTable("ТипыДокументов");
-        modelBuilder.Entity<DocumentType>().Property(p => p.Name).HasColumnName("Название");
+        modelBuilder.Entity<DocumentType>(entity =>
+        {
+            entity.ToTable("ТипыДокументов");
+            entity.Property(p => p.Name).HasColumnName("Название");
+        });
 
-        // ===== ДОКУМЕНТЫ =====
-        modelBuilder.Entity<Document>().ToTable("Документы");
-        modelBuilder.Entity<Document>().Property(p => p.DocumentNumber).HasColumnName("НомерДокумента");
-        modelBuilder.Entity<Document>().Property(p => p.Status).HasColumnName("Статус");
-        modelBuilder.Entity<Document>().Property(d => d.Status).HasConversion<int>();
-        modelBuilder.Entity<Document>().Property(p => p.Comment).HasColumnName("Комментарий");
-        modelBuilder.Entity<Document>().Property(p => p.CreatedDate).HasColumnName("ДатаСоздания");
-        modelBuilder.Entity<Document>().Property(p => p.CreatedByUserId).HasColumnName("СозданПользователемId");
-        modelBuilder.Entity<Document>().Property(p => p.DocumentTypeId).HasColumnName("ТипДокументаId");
-        modelBuilder.Entity<Document>().Property(p => p.WarehouseId).HasColumnName("СкладId");
-        modelBuilder.Entity<Document>().Property(p => p.DepartmentId).HasColumnName("ПодразделениеId");
-        modelBuilder.Entity<Document>().HasOne(d => d.DocumentType).WithMany(dt => dt.Documents).HasForeignKey(d => d.DocumentTypeId).OnDelete(DeleteBehavior.Restrict);
-        modelBuilder.Entity<Document>().HasOne(d => d.Warehouse).WithMany().HasForeignKey(d => d.WarehouseId).OnDelete(DeleteBehavior.Restrict);
-        modelBuilder.Entity<Document>().HasOne(d => d.Department).WithMany().HasForeignKey(d => d.DepartmentId).OnDelete(DeleteBehavior.Restrict);
-        modelBuilder.Entity<Document>().HasOne(d => d.CreatedByUser).WithMany(u => u.CreatedDocuments).HasForeignKey(d => d.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+        // ===== ДОКУМЕНТЫ (ШАПКА) =====
+        modelBuilder.Entity<Document>(entity =>
+        {
+            entity.ToTable("Документы");
+            entity.Property(p => p.DocumentNumber).HasColumnName("НомерДокумента");
+            entity.Property(p => p.Comment).HasColumnName("Комментарий");
 
+            // ИСПРАВЛЕНО: Добавлено значение по умолчанию GETDATE()
+            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("GETDATE()");
 
+            entity.Property(p => p.CreatedByUserId).HasColumnName("СозданПользователемId");
+            entity.Property(p => p.DocumentTypeId).HasColumnName("ТипДокументаId");
+            entity.Property(p => p.WarehouseId).HasColumnName("СкладId");
+            entity.Property(p => p.DepartmentId).HasColumnName("ПодразделениеId");
+            modelBuilder.Entity<Document>().Property(p => p.CounterpartyId).HasColumnName("КонтрагентId");
+            modelBuilder.Entity<Document>().Property(p => p.BaseDocumentId).HasColumnName("ОснованиеId");
+            modelBuilder.Entity<Document>().Property(p => p.ExternalNumber).HasColumnName("ВходящийНомер");
+            modelBuilder.Entity<Document>().Property(p => p.ExternalDate).HasColumnName("ВходящаяДата");
+            modelBuilder.Entity<Document>().Property(p => p.FilePath).HasColumnName("ПутьКФайлу");
+
+            modelBuilder.Entity<Document>().HasOne(d => d.Counterparty).WithMany().HasForeignKey(d => d.CounterpartyId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Document>().HasOne(d => d.BaseDocument).WithMany().HasForeignKey(d => d.BaseDocumentId).OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(d => d.Status)
+                .HasColumnName("Статус")
+                .HasConversion(
+                    v => v == DocumentStatus.Draft ? "Черновик" :
+                         v == DocumentStatus.Posted ? "Проведен" : "Отменен",
+                    v => v == "Черновик" ? DocumentStatus.Draft :
+                         v == "Проведен" ? DocumentStatus.Posted : DocumentStatus.Cancelled
+                );
+
+            entity.HasOne(d => d.DocumentType).WithMany(dt => dt.Documents).HasForeignKey(d => d.DocumentTypeId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(d => d.Warehouse).WithMany().HasForeignKey(d => d.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(d => d.Department).WithMany().HasForeignKey(d => d.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(d => d.CreatedByUser).WithMany(u => u.CreatedDocuments).HasForeignKey(d => d.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(d => d.DocumentNumber).HasDatabaseName("IX_Документы_Номер");
+        });
 
         // ===== СТРОКИ ДОКУМЕНТОВ =====
-        modelBuilder.Entity<DocumentItem>().ToTable("СтрокиДокументов");
-        modelBuilder.Entity<DocumentItem>().Property(p => p.Quantity).HasColumnName("Количество");
-        modelBuilder.Entity<DocumentItem>().Property(p => p.Price).HasColumnName("Цена");
-        modelBuilder.Entity<DocumentItem>().Property(p => p.DocumentId).HasColumnName("ДокументId");
-        modelBuilder.Entity<DocumentItem>().Property(p => p.ProductId).HasColumnName("ТоварId");
-        modelBuilder.Entity<DocumentItem>().Property(p => p.BatchId).HasColumnName("ПартияId");
-        modelBuilder.Entity<DocumentItem>().Property(p => p.SerialNumberId).HasColumnName("СерийныйНомерId");
-        modelBuilder.Entity<DocumentItem>().Property(d => d.Quantity).HasPrecision(18, 4);
-        modelBuilder.Entity<DocumentItem>().Property(d => d.Price).HasPrecision(18, 4);
+        modelBuilder.Entity<DocumentItem>(entity =>
+        {
+            entity.ToTable("СтрокиДокументов");
+
+            entity.Property(p => p.DocumentId).HasColumnName("ДокументId");
+            entity.Property(p => p.ProductId).HasColumnName("ТоварId");
+            entity.Property(p => p.BatchId).HasColumnName("ПартияId");
+            entity.Property(p => p.SerialNumberId).HasColumnName("СерийныйНомерId");
+            entity.Property(p => p.Quantity).HasColumnName("Количество").HasPrecision(18, 4);
+            entity.Property(p => p.Price).HasColumnName("Цена").HasPrecision(18, 4);
+
+            entity.Property(di => di.VatSum)
+                  .HasColumnName("СуммаНДС")
+                  .HasPrecision(18, 2)
+                  .HasDefaultValue(0);
+
+            entity.HasIndex(di => di.DocumentId).HasDatabaseName("IX_СтрокиДокументов_Документ");
+        });
 
         // ===== ТОВАРЫ =====
-        modelBuilder.Entity<Product>().ToTable("Товары");
-        modelBuilder.Entity<Product>().Property(p => p.Name).HasColumnName("Название");
-        modelBuilder.Entity<Product>().Property(p => p.Article).HasColumnName("Артикул");
-        modelBuilder.Entity<Product>().Property(p => p.Barcode).HasColumnName("Штрихкод");
-        modelBuilder.Entity<Product>().Property(p => p.Unit).HasColumnName("ЕдиницаИзмерения");
-        modelBuilder.Entity<Product>().Property(p => p.UseSerialNumbers).HasColumnName("ИспользоватьСерийныеНомера");
-        modelBuilder.Entity<Product>().Property(p => p.UseBatches).HasColumnName("ИспользоватьПартии");
-        modelBuilder.Entity<Product>().Property(p => p.CreatedDate).HasColumnName("ДатаСоздания");
-        modelBuilder.Entity<Product>().HasIndex(p => p.Barcode).IsUnique().HasDatabaseName("UX_Товары_Штрихкод").HasFilter("[Штрихкод] IS NOT NULL");
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.ToTable("Товары");
+            entity.Property(p => p.Name).HasColumnName("Название");
+            entity.Property(p => p.Article).HasColumnName("Артикул");
+            entity.Property(p => p.Barcode).HasColumnName("Штрихкод");
+            entity.Property(p => p.Unit).HasColumnName("ЕдиницаИзмерения");
+            entity.Property(p => p.UseSerialNumbers).HasColumnName("ИспользоватьСерийныеНомера");
+            entity.Property(p => p.UseBatches).HasColumnName("ИспользоватьПартии");
+
+            // ИСПРАВЛЕНО: Добавлено значение по умолчанию GETDATE()
+            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("GETDATE()");
+            modelBuilder.Entity<Product>().Property(p => p.RfidBaseTag).HasColumnName("RFID_BaseTag");
+
+            entity.Property(p => p.PurchasePrice).HasColumnName("ЦенаЗакупки");
+            entity.Property(p => p.RetailPrice).HasColumnName("ЦенаРозничная");
+
+            entity.Property(p => p.VatRate)
+                  .HasColumnName("СтавкаНДС")
+                  .HasColumnType("decimal(5,2)")
+                  .HasDefaultValue(22m);
+
+            // ИСПРАВЛЕНО: Закомментирован маппинг на русские колонки Честный знак и ВСД. 
+            // В вашей базе данных эти колонки уже называются IsMarked и IsVet.
+            // entity.Property(p => p.IsMarked).HasColumnName("Честный знак");
+            // entity.Property(p => p.IsVet).HasColumnName("ВСД");
+
+            entity.HasIndex(p => p.Barcode)
+                  .IsUnique()
+                  .HasDatabaseName("UX_Товары_Штрихкод")
+                  .HasFilter("[Штрихкод] IS NOT NULL");
+        });
 
         // ===== ПАРТИИ =====
-        modelBuilder.Entity<Batch>().ToTable("Партии");
-        modelBuilder.Entity<Batch>().Property(p => p.BatchNumber).HasColumnName("НомерПартии");
-        modelBuilder.Entity<Batch>().Property(p => p.ProductionDate).HasColumnName("ДатаПроизводства");
-        modelBuilder.Entity<Batch>().Property(p => p.ExpirationDate).HasColumnName("СрокГодности");
-        modelBuilder.Entity<Batch>().Property(p => p.ProductId).HasColumnName("ТоварId");
+        modelBuilder.Entity<Batch>(entity =>
+        {
+            entity.ToTable("Партии");
+            entity.Property(p => p.BatchNumber).HasColumnName("НомерПартии");
+            entity.Property(p => p.ProductionDate).HasColumnName("ДатаПроизводства");
+            entity.Property(p => p.ExpirationDate).HasColumnName("СрокГодности");
+            entity.Property(p => p.ProductId).HasColumnName("ТоварId");
+            entity.Property(b => b.VsdUuid).HasColumnName("VsdUuid");
+        });
 
         // ===== СЕРИЙНЫЕ НОМЕРА =====
         modelBuilder.Entity<SerialNumber>().ToTable("СерийныеНомера");
         modelBuilder.Entity<SerialNumber>().Property(p => p.Number).HasColumnName("СерийныйНомер");
         modelBuilder.Entity<SerialNumber>().Property(p => p.Status).HasColumnName("Статус");
         modelBuilder.Entity<SerialNumber>().Property(p => p.ProductId).HasColumnName("ТоварId");
+        modelBuilder.Entity<SerialNumber>().Property(p => p.RfidTag).HasColumnName("RFID_Tag");
+        modelBuilder.Entity<SerialNumber>().Property(p => p.DataMatrix).HasColumnName("DataMatrix");
 
-        // ===== ДВИЖЕНИЯ =====
-        modelBuilder.Entity<StockMovement>().ToTable("ДвиженияТоваров");
-        modelBuilder.Entity<StockMovement>().Property(p => p.DocumentId).HasColumnName("ДокументId");
-        modelBuilder.Entity<StockMovement>().Property(p => p.ProductId).HasColumnName("ТоварId");
-        modelBuilder.Entity<StockMovement>().Property(p => p.WarehouseId).HasColumnName("СкладId");
-        modelBuilder.Entity<StockMovement>().Property(p => p.BatchId).HasColumnName("ПартияId");
-        modelBuilder.Entity<StockMovement>().Property(p => p.SerialNumberId).HasColumnName("СерийныйНомерId");
-        modelBuilder.Entity<StockMovement>().Property(p => p.QuantityChange).HasColumnName("ИзменениеКоличество");
-        modelBuilder.Entity<StockMovement>().Property(p => p.MovementDate).HasColumnName("ДатаДвижения");
-        modelBuilder.Entity<StockMovement>().Property(sm => sm.QuantityChange).HasPrecision(18, 4);
-        modelBuilder.Entity<StockMovement>().HasOne(sm => sm.Document).WithMany().HasForeignKey(sm => sm.DocumentId).OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<StockMovement>().HasOne(sm => sm.Product).WithMany().HasForeignKey(sm => sm.ProductId).OnDelete(DeleteBehavior.Restrict);
-        modelBuilder.Entity<StockMovement>().HasOne(sm => sm.Warehouse).WithMany().HasForeignKey(sm => sm.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+        // ===== ДВИЖЕНИЯ ТОВАРОВ =====
+        modelBuilder.Entity<StockMovement>(entity =>
+        {
+            entity.ToTable("ДвиженияТоваров");
+            entity.Property(p => p.DocumentId).HasColumnName("ДокументId");
+            entity.Property(p => p.ProductId).HasColumnName("ТоварId");
+            entity.Property(p => p.WarehouseId).HasColumnName("СкладId");
+            entity.Property(p => p.BatchId).HasColumnName("ПартияId");
+            entity.Property(p => p.SerialNumberId).HasColumnName("СерийныйНомерId");
+            entity.Property(p => p.QuantityChange).HasColumnName("ИзменениеКоличество").HasPrecision(18, 4);
+
+            // ИСПРАВЛЕНО: Добавлено значение по умолчанию GETDATE()
+            entity.Property(p => p.MovementDate).HasColumnName("ДатаДвижения").HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(sm => sm.Document).WithMany().HasForeignKey(sm => sm.DocumentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(sm => sm.Product).WithMany().HasForeignKey(sm => sm.ProductId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(sm => sm.Warehouse).WithMany().HasForeignKey(sm => sm.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<StockMovement>().Property(p => p.StorageLocationId).HasColumnName("ЯчейкаId");
+            modelBuilder.Entity<StockMovement>().HasOne(sm => sm.StorageLocation).WithMany().HasForeignKey(sm => sm.StorageLocationId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(sm => sm.ProductId).HasDatabaseName("IX_Движения_Товар");
+            entity.HasIndex(sm => sm.WarehouseId).HasDatabaseName("IX_Движения_Склад");
+            entity.Property(p => p.Price).HasColumnName("Цена").HasPrecision(18, 4);
+        });
 
         // ===== ОСТАТКИ =====
-        modelBuilder.Entity<StockBalance>().ToTable("Остатки");
-        modelBuilder.Entity<StockBalance>().Property(p => p.ProductId).HasColumnName("ТоварId");
-        modelBuilder.Entity<StockBalance>().Property(p => p.WarehouseId).HasColumnName("СкладId");
-        modelBuilder.Entity<StockBalance>().Property(p => p.BatchId).HasColumnName("ПартияId");
-        modelBuilder.Entity<StockBalance>().Property(p => p.Quantity).HasColumnName("Количество");
-        modelBuilder.Entity<StockBalance>().Property(sb => sb.Quantity).HasPrecision(18, 4);
-        modelBuilder.Entity<StockBalance>().HasIndex(sb => new { sb.ProductId, sb.WarehouseId, sb.BatchId }).IsUnique().HasDatabaseName("UX_Остатки_ТоварСкладПартия");
+        modelBuilder.Entity<StockBalance>(entity =>
+        {
+            entity.ToTable("Остатки");
+            entity.Property(p => p.ProductId).HasColumnName("ТоварId");
+            entity.Property(p => p.WarehouseId).HasColumnName("СкладId");
+            entity.Property(p => p.BatchId).HasColumnName("ПартияId");
+            entity.Property(p => p.Quantity).HasColumnName("Количество").HasPrecision(18, 4);
+            modelBuilder.Entity<StockBalance>().Property(p => p.StorageLocationId).HasColumnName("ЯчейкаId");
+            modelBuilder.Entity<StockBalance>().HasOne(sb => sb.StorageLocation).WithMany().HasForeignKey(sb => sb.StorageLocationId).OnDelete(DeleteBehavior.Restrict);
 
-        // ===== ЖУРНАЛ =====
-        modelBuilder.Entity<AuditLog>().ToTable("ЖурналДействий");
-        modelBuilder.Entity<AuditLog>().Property(p => p.UserId).HasColumnName("ПользовательId");
-        modelBuilder.Entity<AuditLog>().Property(p => p.Action).HasColumnName("Действие");
-        modelBuilder.Entity<AuditLog>().Property(p => p.ActionDate).HasColumnName("ДатаДействия");
-        modelBuilder.Entity<AuditLog>().HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(sb => new { sb.ProductId, sb.WarehouseId, sb.BatchId }).IsUnique().HasDatabaseName("UX_Остатки_ТоварСкладПартия");
+            entity.HasIndex(sb => new { sb.ProductId, sb.WarehouseId }).HasDatabaseName("IX_Остатки_ТоварСклад");
+        });
 
-        modelBuilder.Entity<Document>().HasIndex(d => d.DocumentNumber).HasDatabaseName("IX_Документы_Номер");
-        modelBuilder.Entity<Product>().HasIndex(p => p.Barcode).HasDatabaseName("IX_Товары_Штрихкод");
-        modelBuilder.Entity<DocumentItem>().HasIndex(di => di.DocumentId).HasDatabaseName("IX_СтрокиДокументов_Документ");
-        modelBuilder.Entity<StockMovement>().HasIndex(sm => sm.ProductId).HasDatabaseName("IX_Движения_Товар");
-        modelBuilder.Entity<StockMovement>().HasIndex(sm => sm.WarehouseId).HasDatabaseName("IX_Движения_Склад");
-        modelBuilder.Entity<StockBalance>().HasIndex(sb => new { sb.ProductId, sb.WarehouseId }).HasDatabaseName("IX_Остатки_ТоварСклад");
+        // ===== ЖУРНАЛ ДЕЙСТВИЙ =====
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("ЖурналДействий");
+            entity.Property(p => p.UserId).HasColumnName("ПользовательId");
+            entity.Property(p => p.Action).HasColumnName("Действие");
 
+            // ИСПРАВЛЕНО: Добавлено значение по умолчанию GETDATE()
+            entity.Property(p => p.ActionDate).HasColumnName("ДатаДействия").HasDefaultValueSql("GETDATE()");
+
+            modelBuilder.Entity<AuditLog>().Property(p => p.EntityName).HasColumnName("Сущность");
+            modelBuilder.Entity<AuditLog>().Property(p => p.EntityId).HasColumnName("IdЗаписи");
+            modelBuilder.Entity<AuditLog>().Property(p => p.ChangesJson).HasColumnName("ИзмененияJSON");
+            entity.HasOne(a => a.User).WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<StorageLocation>(entity =>
+        {
+            entity.ToTable("ЯчейкиХранения");
+            entity.Property(p => p.WarehouseId).HasColumnName("СкладId");
+            entity.Property(p => p.Name).HasColumnName("Название");
+            entity.Property(p => p.RfidTag).HasColumnName("RFID_Метка");
+            entity.Property(p => p.CellType).HasColumnName("ТипЯчейки");
+            entity.HasOne(s => s.Warehouse).WithMany().HasForeignKey(s => s.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ===== КОНТРАГЕНТЫ =====
+        modelBuilder.Entity<Counterparty>(entity =>
+        {
+            entity.ToTable("Контрагенты");
+            entity.Property(p => p.Name).HasColumnName("Название");
+            entity.Property(p => p.IsSupplier).HasColumnName("Поставщик");
+            entity.Property(p => p.IsCustomer).HasColumnName("Покупатель");
+            entity.Property(p => p.Address).HasColumnName("Адрес");
+
+            // ДОБАВЛЕНО: сопоставление латинских имен из кода с кириллицей в БД
+            entity.Property(p => p.INN).HasColumnName("ИНН");
+            entity.Property(p => p.KPP).HasColumnName("КПП");
+        });
     }
 }

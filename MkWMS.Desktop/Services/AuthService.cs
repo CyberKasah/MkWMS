@@ -1,4 +1,6 @@
-﻿namespace MkWMS.Desktop.Services;
+﻿using MkWMS.Data.Constants;
+
+namespace MkWMS.Desktop.Services;
 
 public class AuthService
 {
@@ -18,9 +20,9 @@ public class AuthService
         WarehouseId = warehouseId;
 
         // Проверки на роли
-        IsAdministrator = Roles.Any(r => string.Equals(r, "Администратор", StringComparison.OrdinalIgnoreCase));
-        IsRukovoditel = Roles.Any(r => string.Equals(r, "Руководитель", StringComparison.OrdinalIgnoreCase));
-        IsKladovschik = Roles.Any(r => string.Equals(r, "Кладовщик", StringComparison.OrdinalIgnoreCase));
+        IsAdministrator = Roles.Any(r => string.Equals(r, RoleNames.Admin, StringComparison.OrdinalIgnoreCase));
+        IsRukovoditel = Roles.Any(r => string.Equals(r, RoleNames.Manager, StringComparison.OrdinalIgnoreCase));
+        IsKladovschik = Roles.Any(r => string.Equals(r, RoleNames.Operator, StringComparison.OrdinalIgnoreCase));
     }
 
     public void Logout()

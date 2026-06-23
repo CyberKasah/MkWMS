@@ -15,4 +15,5 @@ public class Batch
 
     public int ProductId { get; set; }
     public Product Product { get; set; } = null!;
+    public string? VsdUuid { get; set; }
 }

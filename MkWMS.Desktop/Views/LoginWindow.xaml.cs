@@ -10,13 +10,29 @@ public partial class LoginWindow : Window
     {
         InitializeComponent();
         DataContext = viewModel;
+
+        // Синхронизация при переключении видимости (из текста обратно в точки)
+        viewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(LoginViewModel.IsPasswordVisible))
+            {
+                if (!viewModel.IsPasswordVisible && PasswordControl.Password != viewModel.Password)
+                {
+                    PasswordControl.Password = viewModel.Password;
+                }
+            }
+        };
     }
 
     private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
     {
         if (DataContext is LoginViewModel vm)
         {
-            vm.Password = PasswordBox.Password;
+            // Обновляем пароль в VM только если сейчас режим "точек"
+            if (!vm.IsPasswordVisible)
+            {
+                vm.Password = PasswordControl.Password;
+            }
         }
     }
 
@@ -29,7 +45,7 @@ public partial class LoginWindow : Window
             {
                 DataContext = changeVm,
                 Owner = this,
-                WindowState = WindowState.Maximized
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
             };
             changeWindow.ShowDialog();
         }

@@ -17,6 +17,8 @@ public class StockMovement
     public decimal QuantityChange { get; set; }
     public DateTime MovementDate { get; set; }
     public decimal? Price { get; set; }
+    public int? StorageLocationId { get; set; }
+
 
     // Навигации
     public Product Product { get; set; } = null!;
@@ -24,4 +26,5 @@ public class StockMovement
     public Batch? Batch { get; set; }
     public SerialNumber? SerialNumber { get; set; }
     public Document Document { get; set; } = null!;
+    public StorageLocation? StorageLocation { get; set; }
 }

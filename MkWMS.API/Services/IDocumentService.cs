@@ -10,4 +10,7 @@ public interface IDocumentService
     Task<bool> DeleteAsync(int id);
     Task<(bool Success, string? Error)> PostAsync(int id, int userId);
     Task<(bool Success, string? Error)> UnpostAsync(int id, int userId);
+    Task<List<DocumentDto>> GetByBaseIdAsync(int baseDocumentId);
+    Task UpdateFilePathAsync(int documentId, string filePath);
+    Task<string?> GetFilePathAsync(int documentId);
 }

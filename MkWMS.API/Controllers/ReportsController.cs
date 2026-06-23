@@ -14,11 +14,14 @@ public class ReportsController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
     private readonly ICurrentUserService _currentUser;
+    private readonly IExcelExportService _excelService;
 
-    public ReportsController(MkWMSDbContext context, ICurrentUserService currentUser)
+    public ReportsController(MkWMSDbContext context, ICurrentUserService currentUser, IExcelExportService excelService)
     {
         _context = context;
         _currentUser = currentUser;
+        _excelService = excelService;
+
     }
 
     [HttpGet("stock-balances")]
@@ -123,5 +126,51 @@ public class ReportsController : ControllerBase
             TotalPages = (int)Math.Ceiling(totalCount / (double)req.PageSize),
             Items = data
         });
+
+
+    }
+
+    [HttpGet("stock-balances/excel")]
+    public async Task<IActionResult> ExportStockBalancesExcel(
+    [FromQuery] int? warehouseId = null,
+    [FromQuery] int? productId = null)
+    {
+        // Повторяем вашу логику фильтрации (в идеале её стоит вынести в отдельный метод/сервис)
+        var query = _context.StockBalances
+            .Include(sb => sb.Product)
+            .Include(sb => sb.Warehouse)
+            .Include(sb => sb.Batch)
+            .AsQueryable();
+
+        // Проверка прав (как в вашем методе)
+        if (!_currentUser.IsAdmin)
+        {
+            if (!_currentUser.WarehouseId.HasValue) return Forbid();
+            query = query.Where(sb => sb.WarehouseId == _currentUser.WarehouseId.Value);
+        }
+
+        if (warehouseId.HasValue) query = query.Where(sb => sb.WarehouseId == warehouseId.Value);
+        if (productId.HasValue) query = query.Where(sb => sb.ProductId == productId.Value);
+
+        var data = await query
+            .Select(sb => new StockBalanceReportDto
+            {
+                Product = sb.Product.Name,
+                ProductId = sb.ProductId,
+                Warehouse = sb.Warehouse.Name,
+                WarehouseId = sb.WarehouseId,
+                Batch = sb.Batch != null ? sb.Batch.BatchNumber : "-",
+                Quantity = sb.Quantity,
+                Unit = sb.Product.Unit ?? ""
+            })
+            .ToListAsync();
+
+        var fileContent = _excelService.ExportToExcel(data, "Остатки");
+        string fileName = $"Stocks_{DateTime.Now:yyyyMMdd}.xlsx";
+
+        return File(
+            fileContent,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName);
     }
 }

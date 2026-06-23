@@ -11,8 +11,10 @@ public class SerialNumber
 {
     public int Id { get; set; }
     public string Number { get; set; } = null!;
-    public int Status { get; set; }
-
+    public string Status { get; set; } = "НаСкладе";
     public int ProductId { get; set; }
     public Product Product { get; set; } = null!;
+    public string? RfidTag { get; set; }
+    public string? DataMatrix { get; set; }
+
 }

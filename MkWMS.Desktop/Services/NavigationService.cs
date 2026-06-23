@@ -1,21 +1,13 @@
 ﻿using MkWMS.Desktop.ViewModels;
-using System;
 
 namespace MkWMS.Desktop.Services;
 
 public class NavigationService
 {
     private BaseViewModel? _currentViewModel;
-    private object value;
 
-    public NavigationService()
-    {
-    }
-
-    public NavigationService(object value)
-    {
-        this.value = value;
-    }
+    // Оставляем только один чистый конструктор
+    public NavigationService() { }
 
     public BaseViewModel? CurrentViewModel
     {

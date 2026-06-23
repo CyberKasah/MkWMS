@@ -1,59 +1,33 @@
-﻿// ViewModels/BatchesViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
-using MkWMS.Desktop.Models;
 using MkWMS.Desktop.Services;
 using System;
-using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class BatchesViewModel : BaseViewModel
+public partial class BatchesViewModel : BaseCrudViewModel<BatchDto>
 {
-    private readonly ApiClient _apiClient;
-
-    [ObservableProperty]
-    private ObservableCollection<BatchDto> batches = new();
-
-    [ObservableProperty]
-    private string searchText = string.Empty;
-
-    public BatchesViewModel(ApiClient apiClient)
+    public BatchesViewModel(ApiClient api)
+        : base(api, ApiEndpoints.Batches)
     {
-        _apiClient = apiClient;
         _ = LoadAsync();
     }
 
     [RelayCommand]
-    private async Task LoadAsync()
+    public void CreateNew()
     {
-        IsBusy = true;
-        ClearError();
+        ClearError(); // Используем метод базы
 
-        try
+        SelectedItem = new BatchDto
         {
-            var req = new PagedRequestDto
-            {
-                Page = 1,
-                PageSize = 50,
-                Search = SearchText
-            };
-
-            var result = await _apiClient.GetBatchesAsync(req);
-            Batches = new ObservableCollection<BatchDto>(result?.Items ?? []);
-        }
-        catch (Exception ex)
-        {
-            SetError(ex.Message);
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+            Id = 0,
+            BatchNumber = $"BAT-{DateTime.Now:yyyyMMdd-HHmmss}",
+            ProductionDate = DateTime.Now.Date,
+            ExpirationDate = DateTime.Now.Date.AddMonths(6),
+            ProductId = 0
+        };
     }
 
-    [RelayCommand]
-    private void Refresh() => LoadAsync();
+
 }

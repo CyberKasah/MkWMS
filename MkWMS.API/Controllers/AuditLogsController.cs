@@ -24,17 +24,29 @@ public class AuditLogsController : ControllerBase
         if (req.Page < 1) req.Page = 1;
         if (req.PageSize < 1 || req.PageSize > 100) req.PageSize = 20;
 
-        var query = _context.AuditLogs.AsNoTracking().AsQueryable();
+        var query = _context.AuditLogs
+            .Include(x => x.User)
+            .AsNoTracking()
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
             var s = req.Search.ToLower().Trim();
-            query = query.Where(x => x.Action.ToLower().Contains(s));
+            query = query.Where(x =>
+                x.Action.ToLower().Contains(s) ||
+                (x.EntityName != null && x.EntityName.ToLower().Contains(s)) ||
+                (x.User.Login != null && x.User.Login.ToLower().Contains(s)) ||
+                (x.User.FullName != null && x.User.FullName.ToLower().Contains(s)));
         }
 
         query = req.SortBy?.ToLower() switch
         {
-            "action" => req.SortDirection?.ToLower() == "desc" ? query.OrderByDescending(x => x.Action) : query.OrderBy(x => x.Action),
+            "action" => req.SortDirection?.ToLower() == "desc"
+                ? query.OrderByDescending(x => x.Action)
+                : query.OrderBy(x => x.Action),
+            "date" => req.SortDirection?.ToLower() == "desc"
+                ? query.OrderByDescending(x => x.ActionDate)
+                : query.OrderBy(x => x.ActionDate),
             _ => query.OrderByDescending(x => x.ActionDate)
         };
 
@@ -47,8 +59,13 @@ public class AuditLogsController : ControllerBase
             {
                 Id = x.Id,
                 UserId = x.UserId,
+                UserLogin = x.User.Login,
+                UserFullName = x.User.FullName ?? x.User.Login ?? "Неизвестный пользователь", // ← теперь точно не пусто
                 Action = x.Action,
-                ActionDate = x.ActionDate
+                ActionDate = x.ActionDate,
+                EntityName = x.EntityName,
+                EntityId = x.EntityId,
+                ChangesJson = x.ChangesJson
             })
             .ToListAsync();
 

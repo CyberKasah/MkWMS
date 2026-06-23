@@ -1,94 +1,134 @@
-﻿// ViewModels/ProductsViewModel.cs
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
-using MkWMS.Data.Entities;
-using MkWMS.Desktop.Models;
 using MkWMS.Desktop.Services;
+using MkWMS.Desktop.Views.Dialogs;
 using System;
-using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows;
 
 namespace MkWMS.Desktop.ViewModels;
 
-public partial class ProductsViewModel : BaseViewModel
+public partial class ProductsViewModel : BaseCrudViewModel<ProductDto>
 {
-    private readonly ApiClient _apiClient;
+    public BatchesViewModel BatchesVM { get; }
+    public SerialNumbersViewModel SerialNumbersVM { get; }
 
-    [ObservableProperty]
-    private ObservableCollection<ProductDto> products = new();
-
-    [ObservableProperty]
-    private ProductDto? selectedProduct;
-
-    [ObservableProperty]
-    private string searchText = string.Empty;
-
-    public ProductsViewModel(ApiClient apiClient)
+    public ProductsViewModel(
+        ApiClient api,
+        BatchesViewModel batchesVM,
+        SerialNumbersViewModel serialNumbersVM)
+        : base(api, ApiEndpoints.Products)
     {
-        _apiClient = apiClient;
-        _ = LoadAsync();
+        BatchesVM = batchesVM;
+        SerialNumbersVM = serialNumbersVM;
+
+        _ = InitializeAsync();
     }
 
-    [RelayCommand]
-    private async Task LoadAsync()
+    private async Task InitializeAsync()
     {
-        IsBusy = true;
+        await LoadAsync();
+        await Task.Delay(100);
+        await BatchesVM.LoadAsync();
+        await Task.Delay(100);
+        await SerialNumbersVM.LoadAsync();
+    }
+
+    protected override void OnEditSelected(ProductDto item)
+    {
+        // Твоя специфичная логика для товаров
+        MessageBox.Show($"Редактирование товара: {item.Name}");
+    }
+    public bool CanEditProduct => SelectedItem != null;
+
+    [RelayCommand]
+    public void CreateNew()
+    {
+        ClearError();
+        SelectedItem = new ProductDto
+        {
+            Id = 0,
+            UseSerialNumbers = false,
+            UseBatches = false,
+            CreatedDate = DateTime.Now,
+            VatRate = 22m,
+            PurchasePrice = 0m,
+            RetailPrice = 0m,
+            IsMarked = false,
+            IsVet = false
+        };
+    }
+
+    // Переопределяем базовое удаление, чтобы добавить специфическое предупреждение
+
+    public override async Task DeleteAsync()
+    {
+        if (SelectedItem == null || SelectedItem.Id <= 0) return;
+
+        var result = MessageBox.Show(
+            $"Удалить товар «{SelectedItem.Name}» и все связанные партии/серийники?",
+            "Подтверждение",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (result != MessageBoxResult.Yes) return;
+
+        IsLoading = true;
         ClearError();
 
         try
         {
-            var req = new PagedRequestDto
+            var success = await _api.DeleteAsync(_endpoint, SelectedItem.Id);
+            if (success)
             {
-                Page = 1,
-                PageSize = 100,
-                Search = SearchText
-            };
-
-            var result = await _apiClient.GetProductsAsync(req);
-            Products = new ObservableCollection<ProductDto>(result?.Items ?? []);   
+                SelectedItem = null;
+                await LoadAsync();
+                MessageBox.Show("Товар успешно удалён", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                SetError("Не удалось удалить. Товар используется в документах.");
+            }
         }
         catch (Exception ex)
         {
-            SetError(ex.Message);
+            SetError($"Ошибка удаления: {ex.Message}");
         }
         finally
         {
-            IsBusy = false;
+            IsLoading = false;
         }
     }
 
-    [RelayCommand]
-    private void Refresh() => LoadAsync();
-
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(IsEntitySaved))]
     private void PrintLabel()
     {
-        if (SelectedProduct == null)
-        {
-            SetError("Выберите товар для печати этикетки");
-            return;
-        }
+        if (SelectedItem == null) return;
+        var printVm = new PrintLabelViewModel(_api, SelectedItem);
+        var dialog = new PrintLabelDialog(printVm);
+        dialog.ShowDialog();
+    }
 
-        try
+    private bool IsEntitySaved => SelectedItem?.Id > 0;
+
+    protected override async void OnRfidScanned(string rfid)
+    {
+        var result = await _api.GetItemByRfidAsync(rfid);
+        if (result?.Type == "Product")
         {
-            var url = $"https://localhost:7000/api/products/label/{SelectedProduct.Id}?qty=3";
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
-        }
-        catch (Exception ex)
-        {
-            SetError("Не удалось открыть этикетку: " + ex.Message);
+            MessageBox.Show($"Найден товар ID: {result.ProductId}", "RFID-скан");
         }
     }
 
-
-    [RelayCommand]
-    private void CreateNew() => MessageBox.Show("Создание нового товара будет добавлено позже", "Инфо");
-
-    [RelayCommand]
-    private void Edit() => MessageBox.Show("Редактирование товара будет добавлено позже", "Инфо");
-
-    [RelayCommand]
-    private void Delete() => MessageBox.Show("Удаление товара будет добавлено позже", "Инфо");
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (e.PropertyName == nameof(SelectedItem))
+        {
+            EditSelectedCommand.NotifyCanExecuteChanged();
+            DeleteCommand.NotifyCanExecuteChanged();
+            PrintLabelCommand.NotifyCanExecuteChanged();
+        }
+    }
 }

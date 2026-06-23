@@ -22,16 +22,48 @@ public class RolesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll() => Ok(await _context.Roles
-        .Select(r => new RoleDto { Id = r.Id, Name = r.Name })
-        .ToListAsync());
-
-    [HttpGet("{id}")]
-    public async Task<IActionResult> Get(int id)
+    public async Task<ActionResult<PagedResult<RoleDto>>> GetAll([FromQuery] PagedRequestDto req)
     {
-        var role = await _context.Roles.FindAsync(id);
-        if (role == null) return NotFound();
-        return Ok(new RoleDto { Id = role.Id, Name = role.Name });
+        if (req.Page < 1) req.Page = 1;
+        if (req.PageSize < 1 || req.PageSize > 100) req.PageSize = 20;
+
+        var query = _context.Roles.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(req.Search))
+        {
+            var s = req.Search.ToLower().Trim();
+            query = query.Where(r => r.Name.ToLower().Contains(s));
+        }
+
+        query = req.SortBy?.ToLower() switch
+        {
+            "name" => req.SortDirection?.ToLower() == "desc"
+                ? query.OrderByDescending(r => r.Name)
+                : query.OrderBy(r => r.Name),
+
+            _ => query.OrderBy(r => r.Id)
+        };
+
+        var totalCount = await query.CountAsync();
+
+        var data = await query
+            .Skip((req.Page - 1) * req.PageSize)
+            .Take(req.PageSize)
+            .Select(r => new RoleDto
+            {
+                Id = r.Id,
+                Name = r.Name
+            })
+            .ToListAsync();
+
+        return Ok(new PagedResult<RoleDto>
+        {
+            TotalCount = totalCount,
+            Page = req.Page,
+            PageSize = req.PageSize,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)req.PageSize),
+            Items = data
+        });
     }
 
     [HttpPost]

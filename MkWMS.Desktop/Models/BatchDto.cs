@@ -7,4 +7,5 @@ public class BatchDto
     public DateTime? ProductionDate { get; set; }
     public DateTime? ExpirationDate { get; set; }
     public int ProductId { get; set; }
+    public string? VsdUuid { get; set; }
 }

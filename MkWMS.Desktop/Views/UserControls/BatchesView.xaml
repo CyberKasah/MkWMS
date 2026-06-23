@@ -1,86 +1,142 @@
 ﻿<UserControl x:Class="MkWMS.Desktop.Views.UserControls.BatchesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-
-    <Grid Margin="20">
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+             mc:Ignorable="d"
+             d:DesignHeight="650" d:DesignWidth="1100">
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
+    </UserControl.Resources>
+    <Grid Margin="0,12,0,0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="690*"/>
-            <ColumnDefinition Width="71*"/>
+            <ColumnDefinition Width="*" MinWidth="400"/>
+            <ColumnDefinition Width="320"/>
         </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <Grid Grid.Column="0" Margin="0,0,12,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox Width="200" Height="45" Margin="0,0,8,0"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         VerticalContentAlignment="Center" Padding="10,0"/>
+                <Button Content="⟳"
+        Command="{Binding RefreshCommand}"
+        Style="{StaticResource RefreshButton}"
+        FontSize="30"
+        MinWidth="40"
+        Height="42"
+        Margin="0,0,6,0"/>
+                <Button Content="Поиск"
+                        Command="{Binding LoadCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Width="75" Margin="0,0,6,0"/>
+                <Button Content="Изменить"
+                        Command="{Binding EditSelectedCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Width="90" Margin="0,0,6,0"/>
+                <Button Content="Добавить"
+                        Command="{Binding CreateNewCommand}"
+                        Style="{StaticResource PrimaryButton}"
+                        Width="85" Margin="0,0,6,0"/>
+                <Button Content="Удалить"
+                        Command="{Binding DeleteCommand}"
+                        CommandParameter="{Binding SelectedItem}"
+                        Style="{StaticResource PrimaryButton}"
+                        Background="#E74C3C" BorderBrush="#C0392B"
+                        Width="80"
+                        IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"/>
+            </StackPanel>
+            <DataGrid Grid.Row="1" ItemsSource="{Binding Items}"
+                      SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                      AutoGenerateColumns="False" IsReadOnly="True"
+                      GridLinesVisibility="Horizontal" AlternatingRowBackground="#F7F7F7"
+                      RowHeight="52">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" ElementStyle="{StaticResource CenterText}"/>
+                    <DataGridTextColumn Header="Номер партии" Binding="{Binding BatchNumber}" Width="180"/>
+                    <DataGridTextColumn Header="Производство" Binding="{Binding ProductionDate, StringFormat=dd.MM.yyyy}" Width="130"/>
+                    <DataGridTextColumn Header="Срок годности" Binding="{Binding ExpirationDate, StringFormat=dd.MM.yyyy}" Width="130"/>
+                    <DataGridTextColumn Header="ID продукта" Binding="{Binding ProductId}" Width="110" ElementStyle="{StaticResource CenterText}"/>
+                    <DataGridTextColumn Header="ВСД" Binding="{Binding VsdUuid}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+            <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                <ProgressBar Height="4" IsIndeterminate="{Binding IsLoading}"
+                             Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}" Margin="0,8,0,0" TextAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+        <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="10"
+                Padding="16" Effect="{StaticResource Elevation2}"
+                Visibility="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock Text="{Binding SelectedItem.Id, StringFormat='Партия №{0}', FallbackValue='Новая партия'}"
+                               Style="{StaticResource HeaderText}"
+                               FontSize="18"
+                               Margin="0,0,0,15"/>
 
-        <!-- Поиск и кнопки -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16" Grid.ColumnSpan="2">
-            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                     Width="250" Padding="12" FontSize="14" Margin="0,0,12,0"/>
+                    <!-- Номер партии -->
+                    <TextBlock Text="Номер партии *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
+                    <TextBox Text="{Binding SelectedItem.BatchNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Height="40"
+                             Margin="0,0,0,20"/>
 
-            <Button Content="Поиск"
-                    Command="{Binding LoadCommand}"
-                    Style="{StaticResource PrimaryButton}"
-                    Width="100"
-                    Margin="0,0,12,0"/>
+                    <!-- Дата производства -->
+                    <TextBlock Text="Дата производства" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
+                    <DatePicker SelectedDate="{Binding SelectedItem.ProductionDate, Mode=TwoWay}"
+                                Height="40"
+                                Margin="0,0,0,20"
+                                VerticalContentAlignment="Center"/>
 
-            <Button Content="Обновить"
-                    Command="{Binding RefreshCommand}"
-                    Style="{StaticResource OutlineButton}"
-                    Width="100"/>
-        </StackPanel>
+                    <!-- Дата срока годности -->
+                    <TextBlock Text="Дата срока годности" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
+                    <DatePicker SelectedDate="{Binding SelectedItem.ExpirationDate, Mode=TwoWay}"
+                                Height="40"
+                                Margin="0,0,0,20"
+                                VerticalContentAlignment="Center"/>
 
-        <!-- Таблица партий -->
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding Batches}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  CanUserSortColumns="True"
-                  HeadersVisibility="Column"
-                  GridLinesVisibility="Horizontal"
-                  AlternatingRowBackground="#F9F9F9"
-                  SelectedItem="{Binding SelectedBatch}" Grid.ColumnSpan="2">
+                    <!-- ID продукта -->
+                    <TextBlock Text="ID продукта *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
+                    <TextBox Text="{Binding SelectedItem.ProductId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Height="40"
+                             Margin="0,0,0,20"/>
 
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" 
-                                    Binding="{Binding Id}" 
-                                    Width="60" 
-                                    ElementStyle="{StaticResource CenterText}"/>
+                    <!-- VSD UUID -->
+                    <TextBlock Text="ВСД" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
+                    <TextBox Text="{Binding SelectedItem.VsdUuid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Height="40"
+                             Margin="0,0,0,20"/>
 
-                <DataGridTextColumn Header="Номер партии" 
-                                    Binding="{Binding BatchNumber}" 
-                                    Width="*"/>
-
-                <DataGridTextColumn Header="Товар ID" 
-                                    Binding="{Binding ProductId}" 
-                                    Width="80"/>
-
-                <DataGridTextColumn Header="Дата производства" 
-                                    Binding="{Binding ProductionDate, StringFormat={}{0:dd.MM.yyyy}}" 
-                                    Width="140"/>
-
-                <DataGridTextColumn Header="Срок годности" 
-                                    Binding="{Binding ExpirationDate, StringFormat={}{0:dd.MM.yyyy}}" 
-                                    Width="140"/>
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <!-- Статус -->
-        <ProgressBar Grid.Row="2"
-                     IsIndeterminate="{Binding IsBusy}"
-                     Height="4"
-                     Margin="0,20,0,4"
-                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" Grid.ColumnSpan="2"/>
-
-        <TextBlock Grid.Row="2"
-                   Text="{Binding ErrorMessage}"
-                   Foreground="{StaticResource Danger}"
-                   Margin="0,12,0,0"
-                   TextAlignment="Center"
-                   TextWrapping="Wrap" Grid.ColumnSpan="2"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Отмена"
+                                Command="{Binding CancelCommand}"
+                                Style="{StaticResource OutlineButton}"
+                                MinWidth="135" Height="40" Margin="0,0,16,0"/>
+                        <Button MinWidth="135" Height="40" Command="{Binding SaveCommand}">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                    <Setter Property="Content" Value="Сохранить"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding SelectedItem.Id}" Value="0">
+                                            <Setter Property="Content" Value="Создать"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding SelectedItem.Id}" Value="{x:Null}">
+                                            <Setter Property="Content" Value="Создать"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
     </Grid>
 </UserControl>

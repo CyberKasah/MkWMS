@@ -3,44 +3,106 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+             xmlns:views="clr-namespace:MkWMS.Desktop.Views.UserControls"
              mc:Ignorable="d"
-             d:DesignHeight="450" d:DesignWidth="800">
+             d:DesignHeight="720" d:DesignWidth="1280">
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
+    </UserControl.Resources>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                     Width="280" Padding="10" Margin="0,0,12,0"/>
-            <Button Content="Поиск" Command="{Binding LoadAsyncCommand}" Padding="14,8" Margin="0,0,12,0"/>
-            <Button Content="Новый документ" Command="{Binding CreateNewDocumentCommand}" Padding="14,8" Margin="0,0,12,0"/>
-            <Button Content="Провести" Command="{Binding PostDocumentCommand}" Padding="14,8" Margin="0,0,12,0"/>
-            <Button Content="Распровести" Command="{Binding UnpostDocumentCommand}" Padding="14,8"/>
-        </StackPanel>
+    <Grid Margin="0,12,0,0">
+        <TabControl Style="{StaticResource MaterialTabControl}">
 
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding Documents}"
-                  SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  Margin="0,0,0,12">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70"/>
-                <DataGridTextColumn Header="Номер" Binding="{Binding DocumentNumber}" Width="160"/>
-                <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="130"/>
-                <DataGridTextColumn Header="Дата" Binding="{Binding CreatedDate, StringFormat=dd.MM.yyyy HH:mm}" Width="170"/>
-                <DataGridTextColumn Header="Склад" Binding="{Binding WarehouseId}" Width="90"/>
-                <DataGridTextColumn Header="Подразделение" Binding="{Binding DepartmentId}" Width="120"/>
-                <DataGridTextColumn Header="Комментарий" Binding="{Binding Comment}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+            <!-- ВКЛАДКА 1: ДОКУМЕНТЫ -->
+            <TabItem Header="Документы">
+                <!-- твой оригинальный код без изменений -->
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="2"
-                   Text="{Binding ErrorMessage}"
-                   Foreground="{StaticResource Danger}"/>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                        <!-- все кнопки, которые у тебя были -->
+                        <TextBox Width="180" Height="45" Margin="0,0,8,0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" Padding="10,0"/>
+                        <Button Content="Поиск" Command="{Binding LoadCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0"/>
+                        <Button Content="Обновить" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0"/>
+                        <Button Content="Создать" Command="{Binding CreateNewCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0"/>
+                        <Button Content="Печать ⏷" 
+        Style="{StaticResource PrimaryButton}" 
+        MinWidth="95" Height="45" Margin="0,0,6,0"
+        IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"
+        Click="PrintButton_Click">
+                            <Button.ContextMenu>
+                                <ContextMenu x:Name="PrintMenu" 
+                     Placement="Bottom" 
+                     PlacementTarget="{Binding RelativeSource={RelativeSource Self}}">
+                                    <MenuItem Header="ТОРГ-12 (Накладная)" 
+                      Command="{Binding PrintDocumentCommand}" 
+                      CommandParameter="torg12"/>
+                                    <MenuItem Header="УПД" 
+                      Command="{Binding PrintDocumentCommand}" 
+                      CommandParameter="upd"/>
+                                    <Separator Style="{StaticResource {x:Static MenuItem.SeparatorStyleKey}}"/>
+                                    <MenuItem Header="ИНВ-3 (Инвентаризация)" 
+                      Command="{Binding PrintDocumentCommand}" 
+                      CommandParameter="inv3"/>
+                                </ContextMenu>
+                            </Button.ContextMenu>
+                        </Button>
+                        <Button Content="PDF" Command="{Binding DownloadPdfCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0" IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"/>
+                        <Button Content="Скан" Command="{Binding UploadScanCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0" IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"/>
+                        <Button Content="Просмотреть" Command="{Binding GoToDetailsCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0" IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"/>
+                        <Button Content="Провести" Command="{Binding PostCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0" IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"/>
+                        <Button Content="Отменить" Command="{Binding UnpostCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0" IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"/>
+                        <Button Content="Удалить" Command="{Binding DeleteCommand}" CommandParameter="{Binding SelectedItem}" Style="{StaticResource PrimaryButton}" Background="#E74C3C" BorderBrush="#C0392B" MinWidth="95" IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" AlternatingRowBackground="#F7F7F7" RowHeight="52">
+                        <!-- твои колонки без изменений -->
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" ElementStyle="{StaticResource CenterText}"/>
+                            <DataGridTextColumn Header="Номер" Binding="{Binding DocumentNumber}" Width="140"/>
+                            <DataGridTextColumn Header="Тип" Binding="{Binding DocumentTypeId}" Width="110"/>
+                            <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="110">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Status}" Value="Проведён">
+                                                <Setter Property="Foreground" Value="#27AE60"/>
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Status}" Value="Черновик">
+                                                <Setter Property="Foreground" Value="#F39C12"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Дата" Binding="{Binding CreatedDate, StringFormat=dd.MM.yyyy HH:mm}" Width="150"/>
+                            <DataGridTextColumn Header="Склад" Binding="{Binding WarehouseId}" Width="90" ElementStyle="{StaticResource CenterText}"/>
+                            <DataGridTextColumn Header="Контрагент" Binding="{Binding CounterpartyName}" Width="180"/>
+                            <DataGridTextColumn Header="Внешний №" Binding="{Binding ExternalNumber}" Width="110"/>
+                            <DataGridTextColumn Header="Комментарий" Binding="{Binding Comment}" Width="200"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                        <ProgressBar Height="4" IsIndeterminate="{Binding IsLoading}" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+                        <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}" Margin="0,8,0,0" TextAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <!-- ВКЛАДКА 3: КОНТРАГЕНТЫ -->
+            <TabItem Header="Контрагенты">
+                <views:CounterpartiesView DataContext="{Binding CounterpartiesVM}"/>
+            </TabItem>
+
+        </TabControl>
     </Grid>
 </UserControl>

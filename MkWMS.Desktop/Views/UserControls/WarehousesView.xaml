@@ -1,78 +1,150 @@
 ﻿<UserControl x:Class="MkWMS.Desktop.Views.UserControls.WarehousesView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+             xmlns:views="clr-namespace:MkWMS.Desktop.Views.UserControls"
+             mc:Ignorable="d"
+             d:DesignHeight="650" d:DesignWidth="1100">
 
-    <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <UserControl.Resources>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
+    </UserControl.Resources>
 
-        <!-- Поиск и кнопки -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                     Width="250" Padding="12" FontSize="14" Margin="0,0,12,0"/>
+    <Grid Margin="0,12,0,0">
+        <TabControl>
+            <!-- Вкладка 1: Склады (основной CRUD) -->
+            <TabItem Header="Склады">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="400"/>
+                        <ColumnDefinition Width="320"/>
+                    </Grid.ColumnDefinitions>
 
-            <Button Content="Поиск"
-                    Command="{Binding LoadCommand}"
-                    Style="{StaticResource PrimaryButton}"
-                    Width="100"
-                    Margin="0,0,12,0"/>
+                    <Grid Grid.Column="0" Margin="0,0,12,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-            <Button Content="Обновить"
-                    Command="{Binding RefreshCommand}"
-                    Style="{StaticResource OutlineButton}"
-                    Width="100"/>
-        </StackPanel>
+                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
+                            <TextBox Width="200" Height="45" Margin="0,0,8,0"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     VerticalContentAlignment="Center" Padding="10,0"/>
+                            <Button Content="⟳"
+Command="{Binding RefreshCommand}"
+Style="{StaticResource RefreshButton}"
+FontSize="30"
+MinWidth="40"
+Height="42"
+Margin="0,0,6,0"/>
+                            <Button Content="Поиск"
+                                    Command="{Binding LoadCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Width="75" Margin="0,0,6,0"/>
+                            <Button Content="Изменить"
+                                    Command="{Binding EditSelectedCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Width="90" Margin="0,0,6,0"/>
+                            <Button Content="Добавить"
+                                    Command="{Binding AddNewCommand}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Width="85" Margin="0,0,6,0"/>
+                            <Button Content="Удалить"
+                                    Command="{Binding DeleteWarehouseCommand}"
+                                    CommandParameter="{Binding SelectedItem}"
+                                    Style="{StaticResource PrimaryButton}"
+                                    Background="#E74C3C" BorderBrush="#C0392B"
+                                    Width="80"
+                                    IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"/>
+                        </StackPanel>
 
-        <!-- Таблица складов -->
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding Warehouses}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  CanUserSortColumns="True"
-                  HeadersVisibility="Column"
-                  GridLinesVisibility="Horizontal"
-                  AlternatingRowBackground="#F9F9F9"
-                  SelectedItem="{Binding SelectedWarehouse}">
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding Items}"
+                                  SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
+                                  GridLinesVisibility="Horizontal" AlternatingRowBackground="#F7F7F7"
+                                  RowHeight="52">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" ElementStyle="{StaticResource CenterText}"/>
+                                <DataGridTextColumn Header="Название" Binding="{Binding Name}" Width="*"/>
+                                <DataGridTextColumn Header="Адрес" Binding="{Binding Address}" Width="2*"/>
+                                <DataGridCheckBoxColumn Header="Активен" Binding="{Binding IsActive}" Width="90"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
 
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="ID" 
-                                    Binding="{Binding Id}" 
-                                    Width="60" 
-                                    ElementStyle="{StaticResource CenterText}"/>
+                        <StackPanel Grid.Row="2" Margin="0,10,0,0">
+                            <ProgressBar Height="4" IsIndeterminate="{Binding IsLoading}"
+                                         Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
+                            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}" 
+                                       Margin="0,8,0,0" TextAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
 
-                <DataGridTextColumn Header="Название" 
-                                    Binding="{Binding Name}" 
-                                    Width="*"/>
+                    <!-- Правая панель редактирования склада -->
+                    <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="10"
+                            Padding="16" Effect="{StaticResource Elevation2}"
+                            Visibility="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <TextBlock Text="{Binding SelectedItem.Id, StringFormat='Склад №{0}', FallbackValue='Новый склад'}"
+                                           Style="{StaticResource HeaderText}"
+                                           FontSize="18"
+                                           Margin="0,0,0,15"/>
 
-                <DataGridTextColumn Header="Адрес" 
-                                    Binding="{Binding Address}" 
-                                    Width="2*"/>
+                                <TextBlock Text="Название *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
+                                <TextBox Text="{Binding SelectedItem.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="40"
+                                         Margin="0,0,0,20"/>
 
-                <DataGridCheckBoxColumn Header="Активен" 
-                                        Binding="{Binding IsActive}" 
-                                        Width="80"/>
-            </DataGrid.Columns>
-        </DataGrid>
+                                <TextBlock Text="Адрес" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
+                                <TextBox Text="{Binding SelectedItem.Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                         Height="40"
+                                         Margin="0,0,0,20"/>
 
-        <!-- Статус -->
-        <ProgressBar Grid.Row="2"
-                     IsIndeterminate="{Binding IsBusy}"
-                     Height="4"
-                     Margin="0,16,0,0"
-                     Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
+                                <CheckBox Content="Активен"
+                                          IsChecked="{Binding SelectedItem.IsActive, Mode=TwoWay}"
+                                          Margin="0,0,0,20"
+                                          VerticalContentAlignment="Center"/>
 
-        <TextBlock Grid.Row="2"
-                   Text="{Binding ErrorMessage}"
-                   Foreground="{StaticResource Danger}"
-                   Margin="0,12,0,0"
-                   TextAlignment="Center"
-                   TextWrapping="Wrap"/>
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <Button Content="Отмена"
+                                            Command="{Binding CancelCommand}"
+                                            Style="{StaticResource OutlineButton}"
+                                            MinWidth="135" Height="40" Margin="0,0,16,0"/>
+                                    <Button MinWidth="135" Height="40" Command="{Binding SaveCommand}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource PrimaryButton}">
+                                                <Setter Property="Content" Value="Сохранить"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SelectedItem.Id}" Value="0">
+                                                        <Setter Property="Content" Value="Создать"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding SelectedItem.Id}" Value="{x:Null}">
+                                                        <Setter Property="Content" Value="Создать"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- Вкладка 2: Подразделения -->
+            <TabItem Header="Подразделения">
+                <views:DepartmentsView DataContext="{Binding DepartmentsVM}"/>
+            </TabItem>
+
+            <!-- Вкладка 3: Ячейки -->
+            <TabItem Header="Ячейки">
+                <views:StorageLocationsView DataContext="{Binding StorageLocationsVM}"/>
+            </TabItem>
+        </TabControl>
     </Grid>
 </UserControl>

@@ -13,16 +13,19 @@ public class DocumentsController : ControllerBase
 {
     private readonly IDocumentService _documentService;
     private readonly IDocumentPostingService _postingService;
-    private readonly ICurrentUserService _currentUser;   // ← добавлено
+    private readonly ICurrentUserService _currentUser;
+    private readonly IPrintService _printService;
 
     public DocumentsController(
         IDocumentService documentService,
         IDocumentPostingService postingService,
-        ICurrentUserService currentUser)                 // ← добавлено
+        ICurrentUserService currentUser,
+        IPrintService printService)
     {
         _documentService = documentService;
         _postingService = postingService;
         _currentUser = currentUser;
+        _printService = printService;
     }
 
     private int GetUserId() =>
@@ -96,7 +99,8 @@ public class DocumentsController : ControllerBase
     {
         int createdByUserId = GetUserId();
         var id = await _documentService.CreateAsync(dto, createdByUserId);
-        return CreatedAtAction(nameof(Get), new { id }, id);
+
+        return Ok(new { id = id });
     }
 
     [HttpPost("{id}/post")]
@@ -124,4 +128,21 @@ public class DocumentsController : ControllerBase
         if (!result) return NotFound();
         return NoContent();
     }
+
+    [HttpGet("{id}/print/torg12")]
+    public async Task<IActionResult> PrintTorg12(int id) => File(await _printService.GenerateTorg12Async(id), "application/pdf", $"torg12_{id}.pdf");
+
+    [HttpGet("{id}/print/upd")]
+    public async Task<IActionResult> PrintUPD(int id) => File(await _printService.GenerateUPDAsync(id), "application/pdf", $"upd_{id}.pdf");
+
+    [HttpGet("{id}/print/inv3")]
+    public async Task<IActionResult> PrintInv3(int id) => File(await _printService.GenerateInv3Async(id), "application/pdf", $"inv3_{id}.pdf");
+
+    [HttpGet("by-base/{baseId}")]
+    public async Task<IActionResult> GetByBaseId(int baseId)
+    {
+        var docs = await _documentService.GetByBaseIdAsync(baseId);
+        return Ok(docs);
+    }
+
 }

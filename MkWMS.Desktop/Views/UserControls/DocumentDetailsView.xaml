@@ -14,10 +14,10 @@
     </UserControl.Resources>
 
     <Grid Margin="0,12,0,0">
-        <!-- Основной контейнер -->
-        <Border Background="{StaticResource Surface}" 
-                CornerRadius="12" 
-                Padding="24" 
+
+        <Border Background="{StaticResource Surface}"
+                CornerRadius="12"
+                Padding="24"
                 Effect="{StaticResource Elevation2}">
 
             <Grid>
@@ -29,7 +29,7 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <!-- 1. ЗАГОЛОВОК ДОКУМЕНТА + КНОПКИ -->
+
                 <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -54,11 +54,11 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- 2. ИНФОРМАЦИЯ О ДОКУМЕНТЕ (карточка) -->
-                <Border Grid.Row="1" 
-                        Background="{StaticResource SurfaceHover}" 
-                        CornerRadius="10" 
-                        Padding="20" 
+
+                <Border Grid.Row="1"
+                        Background="{StaticResource SurfaceHover}"
+                        CornerRadius="10"
+                        Padding="20"
                         Margin="0,16,0,20"
                         Visibility="{Binding Document, Converter={StaticResource NotNullToBool}}">
                     <Grid>
@@ -75,7 +75,7 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Левая колонка -->
+
                         <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,40,0">
                             <TextBlock Text="Номер документа" Style="{StaticResource SubHeaderText}"/>
                             <TextBlock Text="{Binding Document.DocumentNumber}" FontSize="16" FontWeight="SemiBold"/>
@@ -91,19 +91,23 @@
                             <TextBlock Text="{Binding Document.CreatedDate, StringFormat=dd.MM.yyyy HH:mm}" FontSize="16"/>
                         </StackPanel>
 
-                        <!-- Правая колонка -->
+
                         <StackPanel Grid.Row="0" Grid.Column="3">
                             <TextBlock Text="Статус" Style="{StaticResource SubHeaderText}"/>
-                            <TextBlock Text="{Binding Document.Status}" 
+                            <TextBlock Text="{Binding Document.Status}"
                                        FontSize="16" FontWeight="SemiBold">
                                 <TextBlock.Style>
                                     <Style TargetType="TextBlock">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Document.Status}" Value="Проведён">
+
+                                            <DataTrigger Binding="{Binding Document.Status}" Value="Проведен">
                                                 <Setter Property="Foreground" Value="#27AE60"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Document.Status}" Value="Черновик">
                                                 <Setter Property="Foreground" Value="#F39C12"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Document.Status}" Value="Отменен">
+                                                <Setter Property="Foreground" Value="#E74C3C"/>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
@@ -111,7 +115,7 @@
                             </TextBlock>
                         </StackPanel>
 
-                        <!-- Вторая строка -->
+
                         <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,16,40,0">
                             <TextBlock Text="Склад" Style="{StaticResource SubHeaderText}"/>
                             <TextBlock Text="{Binding Document.WarehouseName, FallbackValue='—'}" FontSize="15"/>
@@ -122,19 +126,19 @@
                             <TextBlock Text="{Binding Document.CounterpartyName, FallbackValue='—'}" FontSize="15"/>
                         </StackPanel>
 
-                        <!-- Комментарий -->
+
                         <StackPanel Grid.Row="2" Grid.ColumnSpan="4" Margin="0,16,0,0">
                             <TextBlock Text="Комментарий" Style="{StaticResource SubHeaderText}"/>
-                            <TextBlock Text="{Binding Document.Comment, FallbackValue='—'}" 
+                            <TextBlock Text="{Binding Document.Comment, FallbackValue='—'}"
                                        TextWrapping="Wrap" FontSize="14"/>
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <!-- 3. ТАБЛИЦА ТОВАРОВ -->
-                <TextBlock Grid.Row="2" 
-                           Text="Состав документа" 
-                           Style="{StaticResource SubHeaderText}" 
+
+                <TextBlock Grid.Row="2"
+                           Text="Состав документа"
+                           Style="{StaticResource SubHeaderText}"
                            FontSize="18" Margin="0,0,0,12"/>
 
                 <DataGrid Grid.Row="2"
@@ -147,48 +151,48 @@
                           CanUserResizeColumns="True">
 
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="ID" 
-                                            Binding="{Binding Id}" 
-                                            Width="70" 
+                        <DataGridTextColumn Header="ID"
+                                            Binding="{Binding Id}"
+                                            Width="70"
                                             ElementStyle="{StaticResource CenterText}"/>
 
-                        <DataGridTextColumn Header="Товар" 
-                                            Binding="{Binding ProductName}" 
+                        <DataGridTextColumn Header="Товар"
+                                            Binding="{Binding ProductName}"
                                             Width="3*"/>
 
-                        <DataGridTextColumn Header="Кол-во" 
-                                            Binding="{Binding Quantity, StringFormat=N2}" 
-                                            Width="110" 
+                        <DataGridTextColumn Header="Кол-во"
+                                            Binding="{Binding Quantity, StringFormat=N2}"
+                                            Width="110"
                                             ElementStyle="{StaticResource CenterText}"/>
 
-                        <DataGridTextColumn Header="Цена" 
-                                            Binding="{Binding Price, StringFormat=N2}" 
-                                            Width="110" 
+                        <DataGridTextColumn Header="Цена"
+                                            Binding="{Binding Price, StringFormat=N2}"
+                                            Width="110"
                                             ElementStyle="{StaticResource CenterText}"/>
 
-                        <!-- Сумма по строке (используем существующий конвертер) -->
-                        <DataGridTextColumn Header="Сумма" 
-                    Binding="{Binding ., Converter={StaticResource ItemSumConverter}}" 
-                    Width="130" 
+
+                        <DataGridTextColumn Header="Сумма"
+                    Binding="{Binding ., Converter={StaticResource ItemSumConverter}}"
+                    Width="130"
                     ElementStyle="{StaticResource CenterText}"/>
 
-                        <DataGridTextColumn Header="НДС" 
-                    Binding="{Binding VatSum, StringFormat={}{0:N2}}" 
-                    Width="110" 
+                        <DataGridTextColumn Header="НДС"
+                    Binding="{Binding VatSum, StringFormat={}{0:N2}}"
+                    Width="110"
                     ElementStyle="{StaticResource CenterText}"/>
 
-                        <DataGridTextColumn Header="Итого с НДС" 
-                    Binding="{Binding ., Converter={StaticResource ItemSumConverter}, ConverterParameter=WithVat}" 
-                    Width="140" 
+                        <DataGridTextColumn Header="Итого с НДС"
+                    Binding="{Binding ., Converter={StaticResource ItemSumConverter}, ConverterParameter=WithVat}"
+                    Width="140"
                     ElementStyle="{StaticResource CenterText}"/>
                     </DataGrid.Columns>
                 </DataGrid>
 
-                <!-- 4. ИТОГИ -->
-                <Border Grid.Row="3" 
-                        Background="#F8FAFC" 
-                        CornerRadius="8" 
-                        Padding="20" 
+
+                <Border Grid.Row="3"
+                        Background="#F8FAFC"
+                        CornerRadius="8"
+                        Padding="20"
                         Margin="0,20,0,0">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -198,35 +202,35 @@
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Grid.Column="0" 
-                                   Text="ИТОГО ПО ДОКУМЕНТУ" 
+                        <TextBlock Grid.Column="0"
+                                   Text="ИТОГО ПО ДОКУМЕНТУ"
                                    FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
 
                         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-                            <TextBlock Text="Количество:" 
+                            <TextBlock Text="Количество:"
                                        FontSize="15" Margin="0,0,12,0" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding TotalQuantity, StringFormat='{}{0:N2}'}"
                                        FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="40,0,0,0" HorizontalAlignment="Right">
-                            <TextBlock Text="Сумма с НДС:" 
+                            <TextBlock Text="Сумма с НДС:"
                                        FontSize="15" Margin="0,0,12,0" VerticalAlignment="Center"/>
                             <TextBlock Text="{Binding TotalSum, StringFormat='{}{0:N2} ₽'}"
-                                       FontSize="20" FontWeight="Bold" Foreground="{StaticResource Primary}" 
+                                       FontSize="20" FontWeight="Bold" Foreground="{StaticResource Primary}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <!-- 5. Статус загрузки + ошибка -->
+
                 <StackPanel Grid.Row="4" Margin="0,16,0,0">
-                    <ProgressBar Height="4" 
+                    <ProgressBar Height="4"
                                  IsIndeterminate="{Binding IsLoading}"
                                  Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
-                    <TextBlock Text="{Binding ErrorMessage}" 
-                               Foreground="{StaticResource Danger}" 
-                               Margin="0,8,0,0" 
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               Foreground="{StaticResource Danger}"
+                               Margin="0,8,0,0"
                                TextAlignment="Center"
                                FontSize="14"/>
                 </StackPanel>

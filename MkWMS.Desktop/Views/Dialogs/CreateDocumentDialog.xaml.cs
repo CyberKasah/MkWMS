@@ -14,9 +14,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.Dialogs
 {
-    /// <summary>
-    /// Логика взаимодействия для CreateDocumentDialog.xaml
-    /// </summary>
+
+
+
     public partial class CreateDocumentDialog : Window
     {
         public CreateDocumentDialog()

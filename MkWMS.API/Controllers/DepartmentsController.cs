@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MkWMS.API.DTOs;
 using MkWMS.Data.Context;
-using MkWMS.API.Services;   // ← для ICurrentUserService
+using MkWMS.API.Services;
 
 namespace MkWMS.API.Controllers;
 
@@ -29,8 +29,8 @@ public class DepartmentsController : ControllerBase
 
         var query = _context.Departments.AsNoTracking().AsQueryable();
 
-        // Фильтр по складу для не-админов
-        if (!_currentUser.IsAdmin && _currentUser.WarehouseId.HasValue)
+
+        if (!_currentUser.CanSeeAllWarehouses && _currentUser.WarehouseId.HasValue)
             query = query.Where(d => d.WarehouseId == _currentUser.WarehouseId.Value);
 
         if (!string.IsNullOrWhiteSpace(req.Search))
@@ -77,8 +77,8 @@ public class DepartmentsController : ControllerBase
 
         if (department == null) return NotFound();
 
-        // Проверка прав (если нужно ограничить доступ по складу)
-        if (!_currentUser.IsAdmin && _currentUser.WarehouseId != department.WarehouseId)
+
+        if (!_currentUser.CanSeeAllWarehouses && _currentUser.WarehouseId != department.WarehouseId)
             return Forbid();
 
         return Ok(new DepartmentDto
@@ -92,7 +92,7 @@ public class DepartmentsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<DepartmentDto>> Create([FromBody] DepartmentDto dto)
     {
-        var department = new MkWMS.Data.Entities.Department // Укажите правильный namespace вашей сущности
+        var department = new MkWMS.Data.Entities.Department
         {
             Name = dto.Name,
             WarehouseId = dto.WarehouseId
@@ -113,8 +113,8 @@ public class DepartmentsController : ControllerBase
         var department = await _context.Departments.FindAsync(id);
         if (department == null) return NotFound();
 
-        // Проверка прав
-        if (!_currentUser.IsAdmin && _currentUser.WarehouseId != department.WarehouseId)
+
+        if (!_currentUser.CanSeeAllWarehouses && _currentUser.WarehouseId != department.WarehouseId)
             return Forbid();
 
         department.Name = dto.Name;
@@ -130,8 +130,8 @@ public class DepartmentsController : ControllerBase
         var department = await _context.Departments.FindAsync(id);
         if (department == null) return NotFound();
 
-        // Проверка прав
-        if (!_currentUser.IsAdmin && _currentUser.WarehouseId != department.WarehouseId)
+
+        if (!_currentUser.CanSeeAllWarehouses && _currentUser.WarehouseId != department.WarehouseId)
             return Forbid();
 
         _context.Departments.Remove(department);

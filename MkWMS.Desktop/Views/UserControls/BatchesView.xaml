@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+             xmlns:services="clr-namespace:MkWMS.Desktop.Services"
              mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1100">
     <UserControl.Resources>
@@ -46,6 +47,7 @@
                         Width="85" Margin="0,0,6,0"/>
                 <Button Content="Удалить"
                         Command="{Binding DeleteCommand}"
+                                    Visibility="{Binding Source={x:Static services:AuthService.Current}, Path=IsAdministrator, Converter={StaticResource BoolToVis}}"
                         CommandParameter="{Binding SelectedItem}"
                         Style="{StaticResource PrimaryButton}"
                         Background="#E74C3C" BorderBrush="#C0392B"
@@ -82,33 +84,33 @@
                                FontSize="18"
                                Margin="0,0,0,15"/>
 
-                    <!-- Номер партии -->
+
                     <TextBlock Text="Номер партии *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.BatchNumber, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- Дата производства -->
+
                     <TextBlock Text="Дата производства" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <DatePicker SelectedDate="{Binding SelectedItem.ProductionDate, Mode=TwoWay}"
                                 Height="40"
                                 Margin="0,0,0,20"
                                 VerticalContentAlignment="Center"/>
 
-                    <!-- Дата срока годности -->
+
                     <TextBlock Text="Дата срока годности" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <DatePicker SelectedDate="{Binding SelectedItem.ExpirationDate, Mode=TwoWay}"
                                 Height="40"
                                 Margin="0,0,0,20"
                                 VerticalContentAlignment="Center"/>
 
-                    <!-- ID продукта -->
+
                     <TextBlock Text="ID продукта *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.ProductId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- VSD UUID -->
+
                     <TextBlock Text="ВСД" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.VsdUuid, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"

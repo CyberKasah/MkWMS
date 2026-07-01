@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
 using MkWMS.Desktop.Services;
+using MkWMS.Desktop.Views.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.Reflection;
@@ -10,9 +11,6 @@ using System.Windows;
 
 namespace MkWMS.Desktop.ViewModels;
 
-/// <summary>
-/// Базовый CRUD ViewModel для всех справочников (товары, партии, склады и т.д.)
-/// </summary>
 public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class, new()
 {
     protected readonly ApiClient _api;
@@ -34,7 +32,7 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
         _endpoint = endpoint ?? throw new ArgumentNullException(nameof(endpoint));
     }
 
-    // ====================== ЗАГРУЗКА / ОБНОВЛЕНИЕ ======================
+
 
     [RelayCommand]
     public virtual async Task LoadAsync()
@@ -85,7 +83,7 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
     [RelayCommand]
     public virtual async Task Refresh() => await LoadAsync();
 
-    // ====================== РЕДАКТИРОВАНИЕ ======================
+
 
     [RelayCommand]
     public virtual void EditSelected()
@@ -98,10 +96,10 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
 
     protected virtual void OnEditSelected(TDto item)
     {
-        // Переопределяется в наследниках (например, для открытия окна редактирования)
+
     }
 
-    // ====================== СОХРАНЕНИЕ ======================
+
 
     [RelayCommand]
     public virtual async Task SaveAsync()
@@ -126,7 +124,12 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
             }
             else
             {
-                SetError("Сервер отклонил сохранение. Проверьте данные.");
+
+
+
+                var reason = _api.LastErrorMessage ?? "Сервер отклонил сохранение. Проверьте данные.";
+                SetError(reason);
+                AppMessageBoxWindow.Show(reason, "Не удалось сохранить", AppMessageBoxIcon.Error);
             }
         }
         catch (Exception ex)
@@ -139,20 +142,18 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
         }
     }
 
-    // ====================== УДАЛЕНИЕ ======================
+
 
     [RelayCommand]
     public virtual async Task DeleteAsync()
     {
         if (SelectedItem == null) return;
 
-        var confirm = MessageBox.Show(
+        var confirmed = AppMessageBoxWindow.Confirm(
             "Вы уверены, что хотите удалить эту запись?",
-            "Подтверждение удаления",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            "Подтверждение удаления");
 
-        if (confirm != MessageBoxResult.Yes) return;
+        if (!confirmed) return;
 
         int id = GetId(SelectedItem);
         if (id == 0) return;
@@ -170,7 +171,9 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
             }
             else
             {
-                SetError("Не удалось удалить. Запись используется в других документах.");
+                var reason = _api.LastErrorMessage ?? "Не удалось удалить. Запись используется в других документах.";
+                SetError(reason);
+                AppMessageBoxWindow.Show(reason, "Не удалось удалить", AppMessageBoxIcon.Error);
             }
         }
         catch (Exception ex)
@@ -183,7 +186,7 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
         }
     }
 
-    // ====================== ОТМЕНА ======================
+
 
     [RelayCommand]
     public virtual void Cancel()
@@ -192,7 +195,7 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
         ClearError();
     }
 
-    // ====================== RFID СКАНЕР ======================
+
 
     partial void OnRfidInputChanged(string value)
     {
@@ -208,10 +211,10 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
 
     protected virtual void OnRfidScanned(string rfid)
     {
-        // Переопределяется в наследниках (например, в ProductsViewModel)
+
     }
 
-    // ====================== ПАГИНАЦИЯ ======================
+
 
     [RelayCommand(CanExecute = nameof(CanGoPrevious))]
     public async Task PreviousPage()
@@ -235,7 +238,7 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
     }
     private bool CanGoNext => CurrentPage < TotalPages;
 
-    // ====================== ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ ======================
+
 
     protected int GetId(TDto item)
     {
@@ -247,24 +250,24 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
     {
         base.OnPropertyChanged(e);
 
-        // Обновляем доступность команд при выборе элемента
+
         if (e.PropertyName == nameof(SelectedItem))
         {
-            // Генератор делает из EditSelected -> EditSelectedCommand
+
             EditSelectedCommand.NotifyCanExecuteChanged();
 
-            // КРИТИЧНО: Генератор из DeleteAsync делает DeleteCommand (убирает Async)
+
             DeleteCommand.NotifyCanExecuteChanged();
         }
 
-        // Уведомляем кнопки пагинации
+
         if (e.PropertyName is nameof(CurrentPage) or nameof(TotalPages))
         {
             PreviousPageCommand?.NotifyCanExecuteChanged();
             NextPageCommand?.NotifyCanExecuteChanged();
         }
 
-        // Автоматический поиск
+
         if (e.PropertyName == nameof(SearchText))
         {
             CurrentPage = 1;
@@ -274,13 +277,13 @@ public partial class BaseCrudViewModel<TDto> : BaseViewModel where TDto : class,
     private CancellationTokenSource? _searchCts;
     partial void OnSearchTextChanged(string? value)
     {
-        _searchCts?.Cancel(); // Отменяем предыдущий таймер, если пользователь всё ещё печатает
+        _searchCts?.Cancel();
         _searchCts = new CancellationTokenSource();
         var token = _searchCts.Token;
 
         Task.Run(async () =>
         {
-            await Task.Delay(500, token); // Ждем полсекунды
+            await Task.Delay(500, token);
             if (!token.IsCancellationRequested)
             {
                 Application.Current.Dispatcher.Invoke(() =>

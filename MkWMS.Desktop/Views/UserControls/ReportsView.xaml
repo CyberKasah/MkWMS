@@ -8,26 +8,6 @@
              d:DesignHeight="720" d:DesignWidth="1280">
     <UserControl.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
-
-        <Style TargetType="DatePicker">
-            <Setter Property="Height" Value="34"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Background" Value="{StaticResource Surface}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Border}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10,0"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-            <Setter Property="Foreground" Value="{StaticResource ContentTextPrimary}"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" Value="{StaticResource Primary}"/>
-                </Trigger>
-                <Trigger Property="IsKeyboardFocusWithin" Value="True">
-                    <Setter Property="BorderBrush" Value="{StaticResource Primary}"/>
-                    <Setter Property="BorderThickness" Value="2"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
     </UserControl.Resources>
 
     <Grid Margin="20,12,20,0">
@@ -38,10 +18,10 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-            <TextBlock Text="Отчёты" 
-                       Style="{StaticResource HeaderText}" 
-                       FontSize="26" 
-                       Margin="0,0,30,0" 
+            <TextBlock Text="Отчёты"
+                       Style="{StaticResource HeaderText}"
+                       FontSize="26"
+                       Margin="0,0,30,0"
                        VerticalAlignment="Center"/>
             <Button Content="Обновить всё"
                     Command="{Binding LoadAllCommand}"
@@ -95,39 +75,39 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <Border Grid.Row="0" 
-                            Background="{StaticResource SurfaceHover}" 
-                            CornerRadius="10" 
-                            Margin="0,0,0,12" 
+                    <Border Grid.Row="0"
+                            Background="{StaticResource SurfaceHover}"
+                            CornerRadius="10"
+                            Margin="0,0,0,12"
                             Padding="18,12"
                             Effect="{StaticResource Elevation1}">
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <TextBlock Text="Период с:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,0,10,0" 
+                            <TextBlock Text="Период с:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource TextSecondary}"/>
-                            <DatePicker SelectedDate="{Binding FromDate}" 
+                            <DatePicker SelectedDate="{Binding FromDate}"
                                         Width="148"
                                         Margin="0,0,24,0"/>
-                            <TextBlock Text="по:" 
-                                       VerticalAlignment="Center" 
-                                       Margin="0,0,10,0" 
+                            <TextBlock Text="по:"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,10,0"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource TextSecondary}"/>
-                            <DatePicker SelectedDate="{Binding ToDate}" 
+                            <DatePicker SelectedDate="{Binding ToDate}"
                                         Width="148"
                                         Margin="0,0,24,0"/>
                             <Button Content="Применить"
                                     Command="{Binding LoadAllCommand}"
                                     Style="{StaticResource PrimaryButton}"
-                                    Width="128" 
+                                    Width="128"
                                     Height="34"
                                     Margin="0,0,24,0"/>
                             <TextBlock Text="* данные за указанный период"
-                                       FontStyle="Italic" 
+                                       FontStyle="Italic"
                                        Foreground="{StaticResource ContentTextSecondary}"
-                                       FontSize="12.5" 
+                                       FontSize="12.5"
                                        VerticalAlignment="Center"
                                        Margin="8,0,0,0"/>
                         </StackPanel>
@@ -166,11 +146,11 @@
         </TabControl>
 
         <StackPanel Grid.Row="2" Margin="0,12,0,10">
-            <ProgressBar Height="4" 
+            <ProgressBar Height="4"
                          IsIndeterminate="{Binding IsLoading}"
                          Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
                          Foreground="{StaticResource Primary}"
-                         Background="Transparent" 
+                         Background="Transparent"
                          BorderThickness="0"/>
             <TextBlock Text="{Binding ErrorMessage}"
                        Foreground="{StaticResource Danger}"

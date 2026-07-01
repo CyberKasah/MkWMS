@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для RolesView.xaml
-    /// </summary>
+
+
+
     public partial class RolesView : UserControl
     {
         public RolesView()

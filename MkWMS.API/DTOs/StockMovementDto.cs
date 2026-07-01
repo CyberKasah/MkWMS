@@ -15,7 +15,7 @@ public class StockMovementDto
     public string RfidTag { get; set; } = string.Empty;
     public decimal Price { get; set; }
     public decimal VatRate { get; set; }
-    public decimal VatSum { get; set; } 
+    public decimal VatSum { get; set; }
     public decimal TotalValue { get; set; }
 
 }

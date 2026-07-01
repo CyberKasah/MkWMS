@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для UsersView.xaml
-    /// </summary>
+
+
+
     public partial class UsersView : UserControl
     {
         public UsersView()

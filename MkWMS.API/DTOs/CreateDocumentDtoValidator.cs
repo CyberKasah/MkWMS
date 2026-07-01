@@ -9,7 +9,7 @@ public class CreateDocumentDtoValidator : AbstractValidator<CreateDocumentDto>
         RuleFor(x => x.DocumentTypeId).GreaterThan(0);
         RuleFor(x => x.WarehouseId).GreaterThan(0);
 
-        // Валидация связи с основанием (если указано)
+
         RuleFor(x => x.BaseDocumentId)
             .GreaterThan(0)
             .When(x => x.BaseDocumentId.HasValue);

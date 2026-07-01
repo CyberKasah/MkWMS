@@ -14,7 +14,7 @@ public class DocumentDto
     public int CreatedByUserId { get; set; }
     public List<DocumentItemDto> Items { get; set; } = new();
 
-    // Новые поля
+
     public int? CounterpartyId { get; set; }
     public string? CounterpartyName { get; set; }
     public string? ExternalNumber { get; set; }

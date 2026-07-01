@@ -11,7 +11,7 @@ public partial class LoginWindow : Window
         InitializeComponent();
         DataContext = viewModel;
 
-        // Синхронизация при переключении видимости (из текста обратно в точки)
+
         viewModel.PropertyChanged += (s, e) =>
         {
             if (e.PropertyName == nameof(LoginViewModel.IsPasswordVisible))
@@ -28,7 +28,7 @@ public partial class LoginWindow : Window
     {
         if (DataContext is LoginViewModel vm)
         {
-            // Обновляем пароль в VM только если сейчас режим "точек"
+
             if (!vm.IsPasswordVisible)
             {
                 vm.Password = PasswordControl.Password;

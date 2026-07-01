@@ -11,11 +11,11 @@ public class ProductDto
     public bool UseBatches { get; set; }
     public DateTime CreatedDate { get; set; }
 
-    // Новые поля
+
     public decimal PurchasePrice { get; set; }
     public decimal RetailPrice { get; set; }
-    public decimal VatRate { get; set; } 
-    public bool IsMarked { get; set; } 
+    public decimal VatRate { get; set; }
+    public bool IsMarked { get; set; }
     public bool IsVet { get; set; }
     public string? RfidBaseTag { get; set; }
 }

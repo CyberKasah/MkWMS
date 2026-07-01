@@ -4,7 +4,7 @@ using QuestPDF.Infrastructure;
 using MkWMS.Data.Context;
 using MkWMS.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using QuestPDFDocument = QuestPDF.Fluent.Document; // ← alias решает конфликт имён
+using QuestPDFDocument = QuestPDF.Fluent.Document;
 
 namespace MkWMS.API.Services;
 
@@ -44,12 +44,12 @@ public class PrintService : IPrintService
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.ConstantColumn(40);   // №
-                            columns.RelativeColumn(4);    // Наименование
-                            columns.ConstantColumn(60);   // Кол-во
-                            columns.ConstantColumn(80);   // Цена
-                            columns.ConstantColumn(80);   // Сумма
-                            columns.ConstantColumn(60);   // НДС
+                            columns.ConstantColumn(40);
+                            columns.RelativeColumn(4);
+                            columns.ConstantColumn(60);
+                            columns.ConstantColumn(80);
+                            columns.ConstantColumn(80);
+                            columns.ConstantColumn(60);
                         });
 
                         table.Header(header =>
@@ -206,7 +206,6 @@ public class PrintService : IPrintService
 
         if (doc == null) throw new Exception("Документ не найден");
 
-        // Реальные остатки по складу и товарам документа
         var productIds = doc.Items.Select(i => i.ProductId).Distinct().ToList();
         var balances = await _context.StockBalances
             .Where(sb => sb.WarehouseId == doc.WarehouseId && productIds.Contains(sb.ProductId))

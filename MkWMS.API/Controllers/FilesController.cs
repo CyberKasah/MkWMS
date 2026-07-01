@@ -27,11 +27,11 @@ public class FilesController : ControllerBase
 
         if (file == null || file.Length == 0) return BadRequest("Файл не выбран");
 
-        // Создаем папку Scans, если её нет
+
         var uploadsFolder = Path.Combine(_env.ContentRootPath, "Scans");
         if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
 
-        // Генерируем уникальное имя файла
+
         var uniqueFileName = $"doc_{documentId}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
         var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
@@ -64,7 +64,7 @@ public class FilesController : ControllerBase
         }
         memory.Position = 0;
 
-        // Определяем Content-Type
+
         var ext = Path.GetExtension(filePath).ToLowerInvariant();
         var contentType = ext == ".pdf" ? "application/pdf" :
                           (ext == ".png" ? "image/png" : "image/jpeg");

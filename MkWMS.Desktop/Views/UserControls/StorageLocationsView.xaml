@@ -81,25 +81,25 @@ Margin="0,0,6,0"/>
                                FontSize="18"
                                Margin="0,0,0,15"/>
 
-                    <!-- Название -->
+
                     <TextBlock Text="Название *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- ID склада -->
+
                     <TextBlock Text="ID склада *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.WarehouseId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- RFID Tag -->
+
                     <TextBlock Text="Радиометка" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.RfidTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- Тип ячейки -->
+
                     <TextBlock Text="Тип ячейки" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.CellType, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"

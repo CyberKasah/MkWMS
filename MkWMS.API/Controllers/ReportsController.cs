@@ -15,13 +15,35 @@ public class ReportsController : ControllerBase
     private readonly MkWMSDbContext _context;
     private readonly ICurrentUserService _currentUser;
     private readonly IExcelExportService _excelService;
+    private readonly IFinanceService _financeService;
 
-    public ReportsController(MkWMSDbContext context, ICurrentUserService currentUser, IExcelExportService excelService)
+    public ReportsController(MkWMSDbContext context, ICurrentUserService currentUser, IExcelExportService excelService, IFinanceService financeService)
     {
         _context = context;
         _currentUser = currentUser;
         _excelService = excelService;
+        _financeService = financeService;
+    }
 
+
+
+
+
+
+
+
+    private (bool Forbidden, int? WarehouseId) ResolveWarehouseFilter(int? requestedWarehouseId)
+    {
+        if (_currentUser.CanSeeAllWarehouses)
+            return (false, requestedWarehouseId);
+
+        if (!_currentUser.WarehouseId.HasValue)
+            return (true, null);
+
+        if (requestedWarehouseId.HasValue && requestedWarehouseId != _currentUser.WarehouseId.Value)
+            return (true, null);
+
+        return (false, _currentUser.WarehouseId.Value);
     }
 
     [HttpGet("stock-balances")]
@@ -33,42 +55,19 @@ public class ReportsController : ControllerBase
         if (req.Page < 1) req.Page = 1;
         if (req.PageSize < 1 || req.PageSize > 100) req.PageSize = 20;
 
-        var query = _context.StockBalances
-            .Include(sb => sb.Product)
-            .Include(sb => sb.Warehouse)
-            .Include(sb => sb.Batch)
-            .AsQueryable();
+        var (forbidden, effectiveWarehouseId) = ResolveWarehouseFilter(warehouseId);
+        if (forbidden) return Forbid("Нет доступа к указанному складу");
 
-        if (!_currentUser.IsAdmin)
-        {
-            if (!_currentUser.WarehouseId.HasValue)
-                return Forbid("У пользователя не указан склад");
+        var all = await _financeService.GetStockBalanceReportAsync(effectiveWarehouseId);
+        if (productId.HasValue)
+            all = all.Where(x => x.ProductId == productId.Value).ToList();
 
-            query = query.Where(sb => sb.WarehouseId == _currentUser.WarehouseId.Value);
-
-            if (warehouseId.HasValue && warehouseId != _currentUser.WarehouseId.Value)
-                return Forbid("Нет доступа к указанному складу");
-        }
-
-        if (warehouseId.HasValue) query = query.Where(sb => sb.WarehouseId == warehouseId.Value);
-        if (productId.HasValue) query = query.Where(sb => sb.ProductId == productId.Value);
-
-        var totalCount = await query.CountAsync();
-
-        var data = await query
+        var totalCount = all.Count;
+        var data = all
+            .OrderBy(x => x.Product)
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
-            .Select(sb => new StockBalanceReportDto
-            {
-                Product = sb.Product.Name,
-                ProductId = sb.ProductId,
-                Warehouse = sb.Warehouse.Name,
-                WarehouseId = sb.WarehouseId,
-                Batch = sb.Batch != null ? sb.Batch.BatchNumber : null,
-                Quantity = sb.Quantity,
-                Unit = sb.Product.Unit ?? ""
-            })
-            .ToListAsync();
+            .ToList();
 
         return Ok(new PagedResult<StockBalanceReportDto>
         {
@@ -89,34 +88,15 @@ public class ReportsController : ControllerBase
         if (req.Page < 1) req.Page = 1;
         if (req.PageSize < 1 || req.PageSize > 100) req.PageSize = 20;
 
-        var query = _context.StockMovements
-            .Include(sm => sm.Product)
-            .Include(sm => sm.Warehouse)
-            .Include(sm => sm.Document)
-            .AsQueryable();
+        var (forbidden, effectiveWarehouseId) = ResolveWarehouseFilter(null);
+        if (forbidden) return Forbid("Нет доступа к указанному складу");
 
-        if (from.HasValue) query = query.Where(sm => sm.MovementDate >= from);
-        if (to.HasValue) query = query.Where(sm => sm.MovementDate <= to);
-
-        if (!_currentUser.IsAdmin && _currentUser.WarehouseId.HasValue)
-            query = query.Where(sm => sm.WarehouseId == _currentUser.WarehouseId.Value);
-
-        var totalCount = await query.CountAsync();
-
-        var data = await query
-            .OrderByDescending(sm => sm.MovementDate)
+        var all = await _financeService.GetStockMovementReportAsync(effectiveWarehouseId, from, to);
+        var totalCount = all.Count;
+        var data = all
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
-            .Select(sm => new StockMovementReportDto
-            {
-                Date = sm.MovementDate,
-                Document = sm.Document.DocumentNumber,
-                Product = sm.Product.Name,
-                Warehouse = sm.Warehouse.Name,
-                Quantity = sm.QuantityChange,
-                Type = sm.QuantityChange > 0 ? "Приход" : "Расход"
-            })
-            .ToListAsync();
+            .ToList();
 
         return Ok(new PagedResult<StockMovementReportDto>
         {
@@ -126,47 +106,42 @@ public class ReportsController : ControllerBase
             TotalPages = (int)Math.Ceiling(totalCount / (double)req.PageSize),
             Items = data
         });
-
-
     }
 
     [HttpGet("stock-balances/excel")]
     public async Task<IActionResult> ExportStockBalancesExcel(
-    [FromQuery] int? warehouseId = null,
-    [FromQuery] int? productId = null)
+        [FromQuery] int? warehouseId = null,
+        [FromQuery] int? productId = null)
     {
-        // Повторяем вашу логику фильтрации (в идеале её стоит вынести в отдельный метод/сервис)
-        var query = _context.StockBalances
-            .Include(sb => sb.Product)
-            .Include(sb => sb.Warehouse)
-            .Include(sb => sb.Batch)
-            .AsQueryable();
+        var (forbidden, effectiveWarehouseId) = ResolveWarehouseFilter(warehouseId);
+        if (forbidden) return Forbid();
 
-        // Проверка прав (как в вашем методе)
-        if (!_currentUser.IsAdmin)
-        {
-            if (!_currentUser.WarehouseId.HasValue) return Forbid();
-            query = query.Where(sb => sb.WarehouseId == _currentUser.WarehouseId.Value);
-        }
-
-        if (warehouseId.HasValue) query = query.Where(sb => sb.WarehouseId == warehouseId.Value);
-        if (productId.HasValue) query = query.Where(sb => sb.ProductId == productId.Value);
-
-        var data = await query
-            .Select(sb => new StockBalanceReportDto
-            {
-                Product = sb.Product.Name,
-                ProductId = sb.ProductId,
-                Warehouse = sb.Warehouse.Name,
-                WarehouseId = sb.WarehouseId,
-                Batch = sb.Batch != null ? sb.Batch.BatchNumber : "-",
-                Quantity = sb.Quantity,
-                Unit = sb.Product.Unit ?? ""
-            })
-            .ToListAsync();
+        var data = await _financeService.GetStockBalanceReportAsync(effectiveWarehouseId);
+        if (productId.HasValue)
+            data = data.Where(x => x.ProductId == productId.Value).ToList();
 
         var fileContent = _excelService.ExportToExcel(data, "Остатки");
         string fileName = $"Stocks_{DateTime.Now:yyyyMMdd}.xlsx";
+
+        return File(
+            fileContent,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileName);
+    }
+
+
+
+    [HttpGet("movements/excel")]
+    public async Task<IActionResult> ExportMovementsExcel(
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null)
+    {
+        var (forbidden, effectiveWarehouseId) = ResolveWarehouseFilter(null);
+        if (forbidden) return Forbid();
+
+        var data = await _financeService.GetStockMovementReportAsync(effectiveWarehouseId, from, to);
+        var fileContent = _excelService.ExportToExcel(data, "Движения");
+        string fileName = $"Movements_{DateTime.Now:yyyyMMdd}.xlsx";
 
         return File(
             fileContent,

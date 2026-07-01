@@ -6,7 +6,7 @@ namespace MkWMS.API.Controllers;
 
 [ApiController]
 [Route("api/print")]
-[Authorize] // Доступно всем авторизованным пользователям
+[Authorize]
 public class PrintController : ControllerBase
 {
     private readonly IPrintService _printService;

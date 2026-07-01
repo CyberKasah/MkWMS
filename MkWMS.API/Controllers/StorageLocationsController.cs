@@ -88,27 +88,26 @@ public class StorageLocationsController : ControllerBase
         return NoContent();
     }
 
-    // НОВЫЙ ENDPOINT ДЛЯ RFID СКАНЕРА
+
     [HttpGet("by-rfid/{rfid}")]
     public async Task<IActionResult> GetByRfid(string rfid)
     {
-        // Ищем серийный номер
+
         var serial = await _context.SerialNumbers.AsNoTracking().FirstOrDefaultAsync(s => s.RfidTag == rfid);
         if (serial != null)
             return Ok(new { Type = "SerialNumber", Id = serial.Id, Number = serial.Number, ProductId = serial.ProductId });
 
-        // Если не нашли, ищем ячейку
+
         var location = await _context.StorageLocations.AsNoTracking().FirstOrDefaultAsync(l => l.RfidTag == rfid);
         if (location != null)
             return Ok(new { Type = "StorageLocation", Id = location.Id, Name = location.Name });
 
-        // Если не нашли, ищем товар целиком
+
         var product = await _context.Products.AsNoTracking().FirstOrDefaultAsync(p => p.RfidBaseTag == rfid);
         if (product != null)
             return Ok(new { Type = "Product", Id = product.Id, Name = product.Name });
 
         return NotFound("Метка не зарегистрирована в системе");
-
 
     }
 }

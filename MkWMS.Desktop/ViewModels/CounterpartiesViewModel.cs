@@ -5,9 +5,6 @@ using System;
 
 namespace MkWMS.Desktop.ViewModels;
 
-/// <summary>
-/// Управление контрагентами (Клиенты/Поставщики)
-/// </summary>
 public partial class CounterpartiesViewModel : BaseCrudViewModel<CounterpartyDto>
 {
     public CounterpartiesViewModel(ApiClient api) : base(api, "counterparties")
@@ -29,5 +26,5 @@ public partial class CounterpartiesViewModel : BaseCrudViewModel<CounterpartyDto
         };
     }
 
-    // Команды Cancel и Refresh наследуются из BaseCrudViewModel автоматически
+
 }

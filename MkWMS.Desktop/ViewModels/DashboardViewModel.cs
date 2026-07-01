@@ -2,6 +2,7 @@
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.Desktop.Services;
 using MkWMS.Desktop.Views;
+using MkWMS.Desktop.Views.Dialogs;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows;
@@ -39,33 +40,40 @@ public partial class DashboardViewModel : BaseViewModel
         else if (_authService.IsKladovschik) GoToProducts();
         else
         {
-            MessageBox.Show("Нет прав доступа.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            AppMessageBoxWindow.Show("Нет прав доступа.", "Ошибка", AppMessageBoxIcon.Error);
             Logout();
         }
     }
 
     [RelayCommand]
-    private void Logout()
+    private async Task Logout()
     {
+        try { await _apiClient.LogoutAsync(); }
+        catch {  }
+
         _authService.Logout();
 
         var loginVm = new LoginViewModel(_apiClient, _authService, _navigation);
-        // ИСПРАВЛЕНО: Передаем loginVm в конструктор окна
         var loginWindow = new LoginWindow(loginVm);
 
         loginWindow.Show();
 
-        // Закрываем текущее окно дашборда
         Application.Current.Windows.OfType<Window>()
             .FirstOrDefault(w => w.DataContext == this)?.Close();
     }
 
-    // ==================== НАВИГАЦИЯ С ИСПРАВЛЕННЫМИ ЗАВИСИМОСТЯМИ ====================
+
+
+
+
+
+    [RelayCommand]
+    public void GoToHome() => ConfigureDashboardByRole();
 
     [RelayCommand]
     public void GoToProducts()
     {
-        // ИСПРАВЛЕНО: Создаем требуемые зависимости для ProductsViewModel
+
         var batches = new BatchesViewModel(_apiClient);
         var serials = new SerialNumbersViewModel(_apiClient);
         _navigation.Navigate(new ProductsViewModel(_apiClient, batches, serials));

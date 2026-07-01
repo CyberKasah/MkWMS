@@ -24,7 +24,7 @@ public partial class UsersViewModel : BaseCrudViewModel<UserDto>
     {
         ClearError();
 
-        // Используем защищенное поле _api из BaseCrudViewModel
+
         var dialogVm = user == null
             ? new EditUserViewModel(_api)
             : new EditUserViewModel(_api, user);

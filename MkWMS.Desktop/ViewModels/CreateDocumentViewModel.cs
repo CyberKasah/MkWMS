@@ -19,19 +19,27 @@ public partial class CreateDocumentViewModel : BaseViewModel
     [ObservableProperty] private CreateDocumentDto _document = new();
     [ObservableProperty] private ObservableCollection<CreateDocumentItemDto> _items = new();
 
-    // Справочники
+
     [ObservableProperty] private ObservableCollection<DocumentTypeDto> _documentTypes = new();
     [ObservableProperty] private ObservableCollection<WarehouseDto> _warehouses = new();
     [ObservableProperty] private ObservableCollection<ProductDto> _products = new();
     [ObservableProperty] private ObservableCollection<CounterpartyDto> _counterparties = new();
+
+
+
+    [ObservableProperty] private ObservableCollection<StorageLocationDto> _storageLocations = new();
+    [ObservableProperty] private ObservableCollection<StorageLocationDto> _filteredStorageLocations = new();
 
     public CreateDocumentViewModel(ApiClient apiClient)
     {
         _apiClient = apiClient;
         Document.ExternalDate = DateTime.Now;
 
-        // Подписываемся на изменения в списке товаров, чтобы обновлять Итого
+
         Items.CollectionChanged += Items_CollectionChanged;
+
+
+        Document.PropertyChanged += Document_PropertyChanged;
 
         _ = LoadDictionariesAsync();
     }
@@ -55,24 +63,45 @@ public partial class CreateDocumentViewModel : BaseViewModel
 
             var counterpartiesResult = await _apiClient.GetCounterpartiesAsync(req);
             if (counterpartiesResult?.Items != null) Counterparties = new(counterpartiesResult.Items);
+
+            var locationsResult = await _apiClient.GetStorageLocationsAsync(req);
+            if (locationsResult?.Items != null) StorageLocations = new(locationsResult.Items);
+            UpdateFilteredLocations();
         }
         catch (Exception ex) { SetError($"Ошибка справочников: {ex.Message}"); }
         finally { IsLoading = false; }
+    }
+
+    private void Document_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(CreateDocumentDto.WarehouseId))
+            UpdateFilteredLocations();
+    }
+
+    private void UpdateFilteredLocations()
+    {
+        FilteredStorageLocations = new ObservableCollection<StorageLocationDto>(
+            StorageLocations.Where(l => l.WarehouseId == Document.WarehouseId));
     }
 
     [RelayCommand]
     private void AddItem()
     {
         var newItem = new CreateDocumentItemDto { Quantity = 1, Price = 0 };
-        // Подписываемся на изменения свойств внутри DTO (если это поддерживается)
-        // Или просто добавляем в коллекцию
+
+
+        SubscribeItem(newItem);
         Items.Add(newItem);
     }
 
     [RelayCommand]
     private void RemoveItem(CreateDocumentItemDto? item)
     {
-        if (item != null) Items.Remove(item);
+        if (item != null)
+        {
+            item.PropertyChanged -= Item_PropertyChanged;
+            Items.Remove(item);
+        }
     }
 
     [RelayCommand]
@@ -82,7 +111,7 @@ public partial class CreateDocumentViewModel : BaseViewModel
 
         Document.Items = Items.ToList();
 
-        // Валидация
+
         if (Document.DocumentTypeId <= 0) { SetError("Выберите тип документа"); return; }
         if (Document.WarehouseId <= 0) { SetError("Выберите склад"); return; }
         if (!Document.Items.Any()) { SetError("Добавьте позиции"); return; }
@@ -93,8 +122,8 @@ public partial class CreateDocumentViewModel : BaseViewModel
 
         try
         {
-            // !!! ВАЖНО: Мы не ставим "NEW". Номер сгенерирует сервер по SEQUENCE.
-            // Если серверу нужен пустой номер для генерации - оставляем null.
+
+
             Document.Number = null;
 
             var newId = await _apiClient.CreateDocumentAsync(Document);
@@ -127,12 +156,57 @@ public partial class CreateDocumentViewModel : BaseViewModel
         }
     }
 
-    // Логика обновления общих сумм при изменении состава строк
+
     private void Items_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        // Уведомляем интерфейс, что общая сумма документа могла измениться
+
         OnPropertyChanged(nameof(TotalDocumentSum));
+
+
+
+        if (e.NewItems != null)
+            foreach (var obj in e.NewItems)
+                if (obj is CreateDocumentItemDto item)
+                    SubscribeItem(item);
     }
 
     public decimal TotalDocumentSum => Items.Sum(i => i.TotalSum);
+
+
+
+
+    private void SubscribeItem(CreateDocumentItemDto item)
+    {
+        item.PropertyChanged -= Item_PropertyChanged;
+        item.PropertyChanged += Item_PropertyChanged;
+    }
+
+    private void Item_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not CreateDocumentItemDto item) return;
+
+
+
+        if (e.PropertyName == nameof(CreateDocumentItemDto.ProductId) ||
+            e.PropertyName == nameof(CreateDocumentItemDto.Quantity) ||
+            e.PropertyName == nameof(CreateDocumentItemDto.Price))
+        {
+            RecalculateItem(item, e.PropertyName == nameof(CreateDocumentItemDto.ProductId));
+        }
+
+        OnPropertyChanged(nameof(TotalDocumentSum));
+    }
+
+    private void RecalculateItem(CreateDocumentItemDto item, bool productJustChanged)
+    {
+        var product = Products.FirstOrDefault(p => p.Id == item.ProductId);
+        if (product == null) return;
+
+
+        if (productJustChanged && item.Price <= 0)
+            item.Price = product.PurchasePrice;
+
+
+        item.VatSum = Math.Round(item.Price * item.Quantity * (product.VatRate / 100m), 2);
+    }
 }

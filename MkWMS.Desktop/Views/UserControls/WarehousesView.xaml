@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+             xmlns:services="clr-namespace:MkWMS.Desktop.Services"
              xmlns:views="clr-namespace:MkWMS.Desktop.Views.UserControls"
              mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1100">
@@ -15,7 +16,7 @@
 
     <Grid Margin="0,12,0,0">
         <TabControl>
-            <!-- Вкладка 1: Склады (основной CRUD) -->
+
             <TabItem Header="Склады">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -55,6 +56,7 @@ Margin="0,0,6,0"/>
                                     Width="85" Margin="0,0,6,0"/>
                             <Button Content="Удалить"
                                     Command="{Binding DeleteWarehouseCommand}"
+                                    Visibility="{Binding Source={x:Static services:AuthService.Current}, Path=IsAdministrator, Converter={StaticResource BoolToVis}}"
                                     CommandParameter="{Binding SelectedItem}"
                                     Style="{StaticResource PrimaryButton}"
                                     Background="#E74C3C" BorderBrush="#C0392B"
@@ -78,12 +80,12 @@ Margin="0,0,6,0"/>
                         <StackPanel Grid.Row="2" Margin="0,10,0,0">
                             <ProgressBar Height="4" IsIndeterminate="{Binding IsLoading}"
                                          Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"/>
-                            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}" 
+                            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}"
                                        Margin="0,8,0,0" TextAlignment="Center"/>
                         </StackPanel>
                     </Grid>
 
-                    <!-- Правая панель редактирования склада -->
+
                     <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="10"
                             Padding="16" Effect="{StaticResource Elevation2}"
                             Visibility="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}">
@@ -136,12 +138,12 @@ Margin="0,0,6,0"/>
                 </Grid>
             </TabItem>
 
-            <!-- Вкладка 2: Подразделения -->
+
             <TabItem Header="Подразделения">
                 <views:DepartmentsView DataContext="{Binding DepartmentsVM}"/>
             </TabItem>
 
-            <!-- Вкладка 3: Ячейки -->
+
             <TabItem Header="Ячейки">
                 <views:StorageLocationsView DataContext="{Binding StorageLocationsVM}"/>
             </TabItem>

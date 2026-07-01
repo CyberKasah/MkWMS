@@ -11,6 +11,8 @@ public class DocumentItemDto
     public decimal Quantity { get; set; }
     public decimal? Price { get; set; }
     public decimal VatSum { get; set; }
+    public int? StorageLocationId { get; set; }
+    public string? LocationName { get; set; }
     public decimal TotalSum => (Quantity * (Price ?? 0m)) + VatSum;
 
 }

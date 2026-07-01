@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для CounterpartiesView.xaml
-    /// </summary>
+
+
+
     public partial class CounterpartiesView : UserControl
     {
         public CounterpartiesView()

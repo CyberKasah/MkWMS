@@ -6,7 +6,7 @@ public class AuditLogDto
     public int UserId { get; set; }
     public string? UserLogin { get; set; }
 
-    // ← НОВОЕ: полное имя пользователя (FIO)
+
     public string? UserFullName { get; set; }
 
     public string? UserRole { get; set; }

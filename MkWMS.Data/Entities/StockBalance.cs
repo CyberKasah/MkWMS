@@ -15,7 +15,7 @@ public class StockBalance
     public decimal Quantity { get; set; }
     public int? StorageLocationId { get; set; }
 
-    // Навигации
+
     public Product Product { get; set; } = null!;
     public Warehouse Warehouse { get; set; } = null!;
     public Batch? Batch { get; set; }

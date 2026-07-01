@@ -1,13 +1,9 @@
-﻿// Helpers/RelayCommand.cs
+﻿
 using System;
 using System.Windows.Input;
 
 namespace MkWMS.Desktop.Helpers;
 
-/// <summary>
-/// Универсальная реализация ICommand с поддержкой generic-параметра,
-/// автоматическим CanExecuteChanged и защитой от повторных вызовов.
-/// </summary>
 public class RelayCommand : ICommand
 {
     private readonly Action _execute;
@@ -20,7 +16,7 @@ public class RelayCommand : ICommand
         _canExecute = canExecute;
     }
 
-    public bool CanExecute(object? parameter) => 
+    public bool CanExecute(object? parameter) =>
         !_isExecuting && (_canExecute?.Invoke() ?? true);
 
     public void Execute(object? parameter)
@@ -30,26 +26,23 @@ public class RelayCommand : ICommand
         try
         {
             _isExecuting = true;
-            RaiseCanExecuteChanged(); // сразу отключаем кнопку/меню
+            RaiseCanExecuteChanged();
 
             _execute();
         }
         finally
         {
             _isExecuting = false;
-            RaiseCanExecuteChanged(); // включаем обратно
+            RaiseCanExecuteChanged();
         }
     }
 
     public event EventHandler? CanExecuteChanged;
 
-    public void RaiseCanExecuteChanged() => 
+    public void RaiseCanExecuteChanged() =>
         CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }
 
-/// <summary>
-/// Generic-версия (самая часто используемая)
-/// </summary>
 public class RelayCommand<T> : ICommand
 {
     private readonly Action<T?> _execute;
@@ -62,7 +55,7 @@ public class RelayCommand<T> : ICommand
         _canExecute = canExecute;
     }
 
-    public bool CanExecute(object? parameter) => 
+    public bool CanExecute(object? parameter) =>
         !_isExecuting && (_canExecute?.Invoke(parameter is T t ? t : default) ?? true);
 
     public void Execute(object? parameter)
@@ -85,6 +78,6 @@ public class RelayCommand<T> : ICommand
 
     public event EventHandler? CanExecuteChanged;
 
-    public void RaiseCanExecuteChanged() => 
+    public void RaiseCanExecuteChanged() =>
         CanExecuteChanged?.Invoke(this, EventArgs.Empty);
 }

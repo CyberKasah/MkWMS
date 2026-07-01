@@ -25,18 +25,31 @@ public class MkWMSDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<StorageLocation> StorageLocations => Set<StorageLocation>();
     public DbSet<Counterparty> Counterparties => Set<Counterparty>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
+
+
+
+
+
+
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<DateTime>().HaveColumnType("timestamptz");
+        configurationBuilder.Properties<DateTime?>().HaveColumnType("timestamptz");
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // ===== РОЛИ =====
+
         modelBuilder.Entity<Role>(entity =>
         {
             entity.ToTable("Роли");
             entity.Property(p => p.Name).HasColumnName("Название");
         });
 
-        // ===== ПОЛЬЗОВАТЕЛИ =====
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.ToTable("Пользователи");
@@ -45,15 +58,15 @@ public class MkWMSDbContext : DbContext
             entity.Property(p => p.FullName).HasColumnName("ФИО");
             entity.Property(p => p.IsActive).HasColumnName("Активен");
 
-            // ИСПРАВЛЕНО: Добавлено значение по умолчанию для даты, чтобы избежать ошибки datetime2
-            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("GETDATE()");
+
+            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("now()");
             entity.Property(u => u.RequiresPasswordChange).HasColumnName("ТребуетсяСменаПароля");
 
             entity.HasIndex(u => u.Login).IsUnique().HasDatabaseName("UX_Пользователь_Логин");
             entity.HasOne(u => u.Warehouse).WithMany().HasForeignKey(u => u.WarehouseId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ===== ПОЛЬЗОВАТЕЛИ-РОЛИ =====
+
         modelBuilder.Entity<UserRole>(entity =>
         {
             entity.ToTable("ПользователиРоли");
@@ -66,7 +79,7 @@ public class MkWMSDbContext : DbContext
             entity.HasIndex(ur => new { ur.UserId, ur.RoleId }).IsUnique().HasDatabaseName("UX_Пользователь_Роль");
         });
 
-        // ===== КОНТРАГЕНТЫ =====
+
         modelBuilder.Entity<Counterparty>(entity =>
         {
             entity.ToTable("Контрагенты");
@@ -76,7 +89,7 @@ public class MkWMSDbContext : DbContext
             entity.Property(p => p.Address).HasColumnName("Адрес");
         });
 
-        // ===== СКЛАДЫ =====
+
         modelBuilder.Entity<Warehouse>(entity =>
         {
             entity.ToTable("Склады");
@@ -85,7 +98,7 @@ public class MkWMSDbContext : DbContext
             entity.Property(p => p.IsActive).HasColumnName("Активен");
         });
 
-        // ===== ПОДРАЗДЕЛЕНИЯ =====
+
         modelBuilder.Entity<Department>(entity =>
         {
             entity.ToTable("Подразделения");
@@ -94,22 +107,22 @@ public class MkWMSDbContext : DbContext
             entity.HasOne(d => d.Warehouse).WithMany(w => w.Departments).HasForeignKey(d => d.WarehouseId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        // ===== ТИПЫ ДОКУМЕНТОВ =====
+
         modelBuilder.Entity<DocumentType>(entity =>
         {
             entity.ToTable("ТипыДокументов");
             entity.Property(p => p.Name).HasColumnName("Название");
         });
 
-        // ===== ДОКУМЕНТЫ (ШАПКА) =====
+
         modelBuilder.Entity<Document>(entity =>
         {
             entity.ToTable("Документы");
             entity.Property(p => p.DocumentNumber).HasColumnName("НомерДокумента");
             entity.Property(p => p.Comment).HasColumnName("Комментарий");
 
-            // ИСПРАВЛЕНО: Добавлено значение по умолчанию GETDATE()
-            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("GETDATE()");
+
+            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("now()");
 
             entity.Property(p => p.CreatedByUserId).HasColumnName("СозданПользователемId");
             entity.Property(p => p.DocumentTypeId).HasColumnName("ТипДокументаId");
@@ -140,7 +153,7 @@ public class MkWMSDbContext : DbContext
             entity.HasIndex(d => d.DocumentNumber).HasDatabaseName("IX_Документы_Номер");
         });
 
-        // ===== СТРОКИ ДОКУМЕНТОВ =====
+
         modelBuilder.Entity<DocumentItem>(entity =>
         {
             entity.ToTable("СтрокиДокументов");
@@ -157,10 +170,13 @@ public class MkWMSDbContext : DbContext
                   .HasPrecision(18, 2)
                   .HasDefaultValue(0);
 
+            entity.Property(p => p.StorageLocationId).HasColumnName("ЯчейкаId");
+            entity.HasOne(di => di.StorageLocation).WithMany().HasForeignKey(di => di.StorageLocationId).OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(di => di.DocumentId).HasDatabaseName("IX_СтрокиДокументов_Документ");
         });
 
-        // ===== ТОВАРЫ =====
+
         modelBuilder.Entity<Product>(entity =>
         {
             entity.ToTable("Товары");
@@ -171,8 +187,8 @@ public class MkWMSDbContext : DbContext
             entity.Property(p => p.UseSerialNumbers).HasColumnName("ИспользоватьСерийныеНомера");
             entity.Property(p => p.UseBatches).HasColumnName("ИспользоватьПартии");
 
-            // ИСПРАВЛЕНО: Добавлено значение по умолчанию GETDATE()
-            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("GETDATE()");
+
+            entity.Property(p => p.CreatedDate).HasColumnName("ДатаСоздания").HasDefaultValueSql("now()");
             modelBuilder.Entity<Product>().Property(p => p.RfidBaseTag).HasColumnName("RFID_BaseTag");
 
             entity.Property(p => p.PurchasePrice).HasColumnName("ЦенаЗакупки");
@@ -183,18 +199,18 @@ public class MkWMSDbContext : DbContext
                   .HasColumnType("decimal(5,2)")
                   .HasDefaultValue(22m);
 
-            // ИСПРАВЛЕНО: Закомментирован маппинг на русские колонки Честный знак и ВСД. 
-            // В вашей базе данных эти колонки уже называются IsMarked и IsVet.
-            // entity.Property(p => p.IsMarked).HasColumnName("Честный знак");
-            // entity.Property(p => p.IsVet).HasColumnName("ВСД");
+
+
+
+
 
             entity.HasIndex(p => p.Barcode)
                   .IsUnique()
                   .HasDatabaseName("UX_Товары_Штрихкод")
-                  .HasFilter("[Штрихкод] IS NOT NULL");
+                  .HasFilter("\"Штрихкод\" IS NOT NULL");
         });
 
-        // ===== ПАРТИИ =====
+
         modelBuilder.Entity<Batch>(entity =>
         {
             entity.ToTable("Партии");
@@ -205,7 +221,7 @@ public class MkWMSDbContext : DbContext
             entity.Property(b => b.VsdUuid).HasColumnName("VsdUuid");
         });
 
-        // ===== СЕРИЙНЫЕ НОМЕРА =====
+
         modelBuilder.Entity<SerialNumber>().ToTable("СерийныеНомера");
         modelBuilder.Entity<SerialNumber>().Property(p => p.Number).HasColumnName("СерийныйНомер");
         modelBuilder.Entity<SerialNumber>().Property(p => p.Status).HasColumnName("Статус");
@@ -213,7 +229,7 @@ public class MkWMSDbContext : DbContext
         modelBuilder.Entity<SerialNumber>().Property(p => p.RfidTag).HasColumnName("RFID_Tag");
         modelBuilder.Entity<SerialNumber>().Property(p => p.DataMatrix).HasColumnName("DataMatrix");
 
-        // ===== ДВИЖЕНИЯ ТОВАРОВ =====
+
         modelBuilder.Entity<StockMovement>(entity =>
         {
             entity.ToTable("ДвиженияТоваров");
@@ -224,8 +240,8 @@ public class MkWMSDbContext : DbContext
             entity.Property(p => p.SerialNumberId).HasColumnName("СерийныйНомерId");
             entity.Property(p => p.QuantityChange).HasColumnName("ИзменениеКоличество").HasPrecision(18, 4);
 
-            // ИСПРАВЛЕНО: Добавлено значение по умолчанию GETDATE()
-            entity.Property(p => p.MovementDate).HasColumnName("ДатаДвижения").HasDefaultValueSql("GETDATE()");
+
+            entity.Property(p => p.MovementDate).HasColumnName("ДатаДвижения").HasDefaultValueSql("now()");
 
             entity.HasOne(sm => sm.Document).WithMany().HasForeignKey(sm => sm.DocumentId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(sm => sm.Product).WithMany().HasForeignKey(sm => sm.ProductId).OnDelete(DeleteBehavior.Restrict);
@@ -237,7 +253,7 @@ public class MkWMSDbContext : DbContext
             entity.Property(p => p.Price).HasColumnName("Цена").HasPrecision(18, 4);
         });
 
-        // ===== ОСТАТКИ =====
+
         modelBuilder.Entity<StockBalance>(entity =>
         {
             entity.ToTable("Остатки");
@@ -248,19 +264,22 @@ public class MkWMSDbContext : DbContext
             modelBuilder.Entity<StockBalance>().Property(p => p.StorageLocationId).HasColumnName("ЯчейкаId");
             modelBuilder.Entity<StockBalance>().HasOne(sb => sb.StorageLocation).WithMany().HasForeignKey(sb => sb.StorageLocationId).OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(sb => new { sb.ProductId, sb.WarehouseId, sb.BatchId }).IsUnique().HasDatabaseName("UX_Остатки_ТоварСкладПартия");
+
+
+
+            entity.HasIndex(sb => new { sb.ProductId, sb.WarehouseId, sb.BatchId, sb.StorageLocationId }).HasDatabaseName("IX_Остатки_ТоварСкладПартияЯчейка");
             entity.HasIndex(sb => new { sb.ProductId, sb.WarehouseId }).HasDatabaseName("IX_Остатки_ТоварСклад");
         });
 
-        // ===== ЖУРНАЛ ДЕЙСТВИЙ =====
+
         modelBuilder.Entity<AuditLog>(entity =>
         {
             entity.ToTable("ЖурналДействий");
             entity.Property(p => p.UserId).HasColumnName("ПользовательId");
             entity.Property(p => p.Action).HasColumnName("Действие");
 
-            // ИСПРАВЛЕНО: Добавлено значение по умолчанию GETDATE()
-            entity.Property(p => p.ActionDate).HasColumnName("ДатаДействия").HasDefaultValueSql("GETDATE()");
+
+            entity.Property(p => p.ActionDate).HasColumnName("ДатаДействия").HasDefaultValueSql("now()");
 
             modelBuilder.Entity<AuditLog>().Property(p => p.EntityName).HasColumnName("Сущность");
             modelBuilder.Entity<AuditLog>().Property(p => p.EntityId).HasColumnName("IdЗаписи");
@@ -278,7 +297,7 @@ public class MkWMSDbContext : DbContext
             entity.HasOne(s => s.Warehouse).WithMany().HasForeignKey(s => s.WarehouseId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ===== КОНТРАГЕНТЫ =====
+
         modelBuilder.Entity<Counterparty>(entity =>
         {
             entity.ToTable("Контрагенты");
@@ -287,9 +306,33 @@ public class MkWMSDbContext : DbContext
             entity.Property(p => p.IsCustomer).HasColumnName("Покупатель");
             entity.Property(p => p.Address).HasColumnName("Адрес");
 
-            // ДОБАВЛЕНО: сопоставление латинских имен из кода с кириллицей в БД
+
             entity.Property(p => p.INN).HasColumnName("ИНН");
             entity.Property(p => p.KPP).HasColumnName("КПП");
         });
+
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            entity.ToTable("ТокеныОбновления");
+            entity.HasKey(rt => rt.Id);
+            entity.Property(rt => rt.UserId).HasColumnName("ПользовательId");
+            entity.Property(rt => rt.Token).HasColumnName("Токен").HasMaxLength(200).IsRequired();
+            entity.Property(rt => rt.ExpiresAt).HasColumnName("ДатаИстечения");
+            entity.Property(rt => rt.CreatedAt).HasColumnName("ДатаСоздания");
+            entity.Property(rt => rt.RevokedAt).HasColumnName("ДатаОтзыва");
+            entity.Property(rt => rt.ReplacedByToken).HasColumnName("ЗамененТокеном").HasMaxLength(200);
+
+            entity.HasOne(rt => rt.User).WithMany().HasForeignKey(rt => rt.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(rt => rt.Token).IsUnique().HasDatabaseName("UX_ТокеныОбновления_Токен");
+            entity.HasIndex(rt => rt.UserId).HasDatabaseName("IX_ТокеныОбновления_Пользователь");
+        });
+
+
+
+
+
+
+        modelBuilder.HasSequence<int>("documentnumberseq").StartsAt(1).IncrementsBy(1);
     }
 }

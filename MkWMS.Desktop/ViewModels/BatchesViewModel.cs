@@ -17,7 +17,7 @@ public partial class BatchesViewModel : BaseCrudViewModel<BatchDto>
     [RelayCommand]
     public void CreateNew()
     {
-        ClearError(); // Используем метод базы
+        ClearError();
 
         SelectedItem = new BatchDto
         {
@@ -28,6 +28,5 @@ public partial class BatchesViewModel : BaseCrudViewModel<BatchDto>
             ProductId = 0
         };
     }
-
 
 }

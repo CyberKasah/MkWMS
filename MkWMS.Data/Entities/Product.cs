@@ -23,4 +23,3 @@ public class Product
     public bool IsMarked { get; set; } = false;
     public bool IsVet { get; set; } = false;
 }
-    

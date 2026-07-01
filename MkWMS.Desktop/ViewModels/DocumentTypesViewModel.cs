@@ -11,7 +11,7 @@ public partial class DocumentTypesViewModel : BaseCrudViewModel<DocumentTypeDto>
         _ = LoadAsync();
     }
 
-    // Метод Refresh просто вызывает базовый LoadAsync
+
     [RelayCommand]
     private async Task RefreshAsync() => await LoadAsync();
 }

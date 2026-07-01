@@ -7,5 +7,5 @@ public class StorageLocation
     public Warehouse Warehouse { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string? RfidTag { get; set; }
-    public string? CellType { get; set; } // Хранение, Приемка, Отгрузка
+    public string? CellType { get; set; }
 }

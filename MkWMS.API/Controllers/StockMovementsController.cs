@@ -30,7 +30,7 @@ public class StockMovementsController : ControllerBase
 
         var query = _context.StockMovements.AsNoTracking().AsQueryable();
 
-        if (!_currentUser.IsAdmin && _currentUser.WarehouseId.HasValue)
+        if (!_currentUser.CanSeeAllWarehouses && _currentUser.WarehouseId.HasValue)
             query = query.Where(x => x.WarehouseId == _currentUser.WarehouseId.Value);
 
         if (!string.IsNullOrWhiteSpace(req.Search))

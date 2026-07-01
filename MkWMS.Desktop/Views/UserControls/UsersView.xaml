@@ -15,7 +15,7 @@
 
     <Grid Margin="0,12,0,0">
         <TabControl>
-            <!-- Вкладка Пользователи -->
+
             <TabItem Header="Пользователи">
                 <Grid>
                     <Grid.RowDefinitions>
@@ -80,12 +80,12 @@
                 </Grid>
             </TabItem>
 
-            <!-- Вкладка Роли -->
+
             <TabItem Header="Роли">
                 <views:RolesView DataContext="{Binding RolesVM}"/>
             </TabItem>
 
-            <!-- Вкладка Журнал действий -->
+
             <TabItem Header="Журнал действий">
                 <views:AuditLogsView DataContext="{Binding AuditLogsVM}"/>
             </TabItem>

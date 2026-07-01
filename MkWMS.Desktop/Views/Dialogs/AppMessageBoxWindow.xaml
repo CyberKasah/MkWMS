@@ -1,0 +1,45 @@
+﻿<Window x:Class="MkWMS.Desktop.Views.Dialogs.AppMessageBoxWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="MkWMS"
+        Width="420" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        Background="{StaticResource Background}">
+
+
+
+    <Border Background="{StaticResource Surface}"
+            CornerRadius="14"
+            BorderBrush="{StaticResource Border}"
+            BorderThickness="1"
+            Margin="14"
+            Padding="24,22,24,18"
+            Effect="{StaticResource Elevation3}">
+        <StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <Border x:Name="IconBadge" Width="40" Height="40" CornerRadius="20" Margin="0,0,12,0">
+                    <TextBlock x:Name="IconGlyph" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <TextBlock x:Name="TitleBlock" Text="Сообщение" FontSize="17" FontWeight="SemiBold"
+                           Foreground="{StaticResource ContentTextPrimary}" VerticalAlignment="Center"/>
+            </StackPanel>
+
+            <TextBlock x:Name="MessageBlock" Text="" TextWrapping="Wrap" FontSize="14"
+                       Foreground="{StaticResource ContentTextSecondary}" Margin="0,0,0,22" LineHeight="20"/>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="CancelButton" Content="Отмена" Style="{StaticResource OutlineButton}"
+                        Width="120" Height="38" Margin="0,0,10,0" Click="CancelButton_Click" Visibility="Collapsed"/>
+                <Button x:Name="OkButton" Content="ОК" Style="{StaticResource PrimaryButton}"
+                        Width="120" Height="38" Click="OkButton_Click" IsDefault="True"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Border>
+</Window>

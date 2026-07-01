@@ -9,7 +9,7 @@ namespace MkWMS.API.Controllers;
 
 [ApiController]
 [Route("api/serialnumbers")]
-[Authorize] // Чтение доступно всем авторизованным пользователям
+[Authorize]
 public class SerialNumbersController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
@@ -24,23 +24,23 @@ public class SerialNumbersController : ControllerBase
     {
         try
         {
-            // 1. Валидация параметров
+
             var page = req.Page < 1 ? 1 : req.Page;
             var pageSize = req.PageSize < 1 ? 20 : req.PageSize;
 
             var query = _context.SerialNumbers.AsNoTracking().AsQueryable();
 
-            // 2. Поиск (исправленный)
+
             if (!string.IsNullOrWhiteSpace(req.Search))
             {
                 var s = req.Search.ToLower().Trim();
                 query = query.Where(x => x.Number.ToLower().Contains(s));
             }
 
-            // 3. Считаем общее кол-во
+
             var totalCount = await query.CountAsync();
 
-            // 4. Получаем данные
+
             var data = await query
         .OrderByDescending(x => x.Id)
         .Skip((page - 1) * pageSize)
@@ -52,7 +52,8 @@ public class SerialNumbersController : ControllerBase
             Status = x.Status,
             ProductId = x.ProductId,
             ProductName = x.Product != null ? x.Product.Name : "Неизвестно",
-            RfidTag = x.RfidTag // ТЕПЕРЬ ПРИВЯЗКА В WPF ЗАРАБОТАЕТ
+            RfidTag = x.RfidTag,
+            DataMatrix = x.DataMatrix
         }).ToListAsync();
 
             return Ok(new PagedResult<SerialNumberDto>
@@ -61,12 +62,12 @@ public class SerialNumbersController : ControllerBase
                 Page = page,
                 PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                Items = data ?? new List<SerialNumberDto>() // Гарантируем, что Items не null
+                Items = data ?? new List<SerialNumberDto>()
             });
         }
         catch (Exception ex)
         {
-            // Если упадет — увидишь ошибку в консоли API
+
             Console.WriteLine($"Error in SerialNumbers GetAll: {ex.Message}");
             return StatusCode(500, "Internal Server Error");
         }
@@ -83,19 +84,25 @@ public class SerialNumbersController : ControllerBase
             Id = entity.Id,
             Number = entity.Number,
             Status = entity.Status,
-            ProductId = entity.ProductId
+            ProductId = entity.ProductId,
+            RfidTag = entity.RfidTag,
+            DataMatrix = entity.DataMatrix
         });
     }
 
+
+
     [HttpPost]
-    [Authorize(Policy = "AdminPolicy")] // Создание только для админов
+    [Authorize]
     public async Task<IActionResult> Create(SerialNumberDto dto)
     {
         var entity = new SerialNumber
         {
             Number = dto.Number,
             Status = dto.Status,
-            ProductId = dto.ProductId
+            ProductId = dto.ProductId,
+            RfidTag = dto.RfidTag,
+            DataMatrix = dto.DataMatrix
         };
 
         _context.SerialNumbers.Add(entity);
@@ -106,7 +113,7 @@ public class SerialNumbersController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "AdminPolicy")] // Обновление только для админов
+    [Authorize]
     public async Task<IActionResult> Update(int id, SerialNumberDto dto)
     {
         var entity = await _context.SerialNumbers.FindAsync(id);
@@ -115,13 +122,15 @@ public class SerialNumbersController : ControllerBase
         entity.Number = dto.Number;
         entity.Status = dto.Status;
         entity.ProductId = dto.ProductId;
+        entity.RfidTag = dto.RfidTag;
+        entity.DataMatrix = dto.DataMatrix;
 
         await _context.SaveChangesAsync();
         return NoContent();
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = "AdminPolicy")] // Удаление только для админов
+    [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Delete(int id)
     {
         var entity = await _context.SerialNumbers.FindAsync(id);

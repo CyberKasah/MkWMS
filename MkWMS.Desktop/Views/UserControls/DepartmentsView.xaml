@@ -79,13 +79,13 @@ Margin="0,0,6,0"/>
                                FontSize="18"
                                Margin="0,0,0,15"/>
 
-                    <!-- Название -->
+
                     <TextBlock Text="Название *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- Склад (ComboBox) -->
+
                     <TextBlock Text="Склад *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <ComboBox ItemsSource="{Binding Warehouses}"
                               SelectedValue="{Binding SelectedItem.WarehouseId, Mode=TwoWay}"

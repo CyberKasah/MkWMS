@@ -10,7 +10,7 @@ public class ShowHideConverter : IValueConverter
     {
         if (value is bool isVisible)
         {
-            // По умолчанию возвращаем "показать" (глаз) когда пароль скрыт
+
             return isVisible ? "🙈" : "👁️";
         }
         return "👁️";

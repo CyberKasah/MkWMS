@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для BatchesView.xaml
-    /// </summary>
+
+
+
     public partial class BatchesView : UserControl
     {
         public BatchesView()

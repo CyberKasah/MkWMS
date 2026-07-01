@@ -37,8 +37,8 @@ public partial class ProductsViewModel : BaseCrudViewModel<ProductDto>
 
     protected override void OnEditSelected(ProductDto item)
     {
-        // Твоя специфичная логика для товаров
-        MessageBox.Show($"Редактирование товара: {item.Name}");
+
+        AppMessageBoxWindow.Show($"Редактирование товара: {item.Name}", "Информация", AppMessageBoxIcon.Info);
     }
     public bool CanEditProduct => SelectedItem != null;
 
@@ -60,19 +60,17 @@ public partial class ProductsViewModel : BaseCrudViewModel<ProductDto>
         };
     }
 
-    // Переопределяем базовое удаление, чтобы добавить специфическое предупреждение
+
 
     public override async Task DeleteAsync()
     {
         if (SelectedItem == null || SelectedItem.Id <= 0) return;
 
-        var result = MessageBox.Show(
+        var confirmed = AppMessageBoxWindow.Confirm(
             $"Удалить товар «{SelectedItem.Name}» и все связанные партии/серийники?",
-            "Подтверждение",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            "Подтверждение удаления");
 
-        if (result != MessageBoxResult.Yes) return;
+        if (!confirmed) return;
 
         IsLoading = true;
         ClearError();
@@ -84,11 +82,14 @@ public partial class ProductsViewModel : BaseCrudViewModel<ProductDto>
             {
                 SelectedItem = null;
                 await LoadAsync();
-                MessageBox.Show("Товар успешно удалён", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppMessageBoxWindow.Show("Товар успешно удалён", "Готово", AppMessageBoxIcon.Success);
             }
             else
             {
-                SetError("Не удалось удалить. Товар используется в документах.");
+
+                var reason = _api.LastErrorMessage ?? "Не удалось удалить. Товар используется в документах.";
+                SetError(reason);
+                AppMessageBoxWindow.Show(reason, "Не удалось удалить", AppMessageBoxIcon.Error);
             }
         }
         catch (Exception ex)
@@ -117,7 +118,7 @@ public partial class ProductsViewModel : BaseCrudViewModel<ProductDto>
         var result = await _api.GetItemByRfidAsync(rfid);
         if (result?.Type == "Product")
         {
-            MessageBox.Show($"Найден товар ID: {result.ProductId}", "RFID-скан");
+            AppMessageBoxWindow.Show($"Найден товар ID: {result.ProductId}", "RFID-скан", AppMessageBoxIcon.Info);
         }
     }
 

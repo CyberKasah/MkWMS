@@ -7,27 +7,24 @@ using MkWMS.API.Services;
 using MkWMS.Data.Context;
 using System.Text;
 using System.Text.Json.Serialization;
-// Добавленные пространства имен для работы генератора токенов:
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
-// --- СЕРВИСЫ ---
 builder.Services.AddHttpContextAccessor();
 
-// Регистрация Интерцептора
 builder.Services.AddScoped<MkWMS.API.Interceptors.AuditInterceptor>();
 
-// Регистрация DB Context
 builder.Services.AddDbContext<MkWMSDbContext>((sp, options) =>
 {
     var interceptor = sp.GetRequiredService<MkWMS.API.Interceptors.AuditInterceptor>();
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
            .AddInterceptors(interceptor);
 });
 
-// Остальные сервисы
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<UserRoleService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
@@ -38,6 +35,7 @@ builder.Services.AddScoped<IFinanceService, FinanceService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IExcelExportService, ExcelExportService>();
 builder.Services.AddScoped<IPrintService, PrintService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -45,10 +43,8 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
     });
 
-// FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<CreateDocumentDtoValidator>();
 
-// JWT
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -65,7 +61,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Политики для ролей
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminPolicy", policy => policy.RequireRole("Администратор", "Admin"));
@@ -88,7 +83,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
-        Name = "Authorization", // Исправлено на стандартное имя заголовка
+        Name = "Authorization",
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
         Scheme = "bearer",
         BearerFormat = "JWT",
@@ -125,10 +120,8 @@ if (app.Environment.IsDevelopment())
     var seeder = scope.ServiceProvider.GetRequiredService<DataSeeder>();
     await seeder.SeedAsync();
 
-    // ──────────────────────────────────────────────────────────────────
-    // ВРЕМЕННЫЙ КУСОК: ГЕНЕРАЦИЯ ТОКЕНА ДЛЯ ОБХОДА АВТОРИЗАЦИИ
-    // ──────────────────────────────────────────────────────────────────
-    try
+    
+    /*try
     {
         var jwtKey = app.Configuration["Jwt:Key"];
         var jwtIssuer = app.Configuration["Jwt:Issuer"];
@@ -141,24 +134,23 @@ if (app.Environment.IsDevelopment())
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, "1"),         // Будет спарсено в GetCurrentUserId() как 1
+                new Claim(ClaimTypes.NameIdentifier, "1"),
                 new Claim(ClaimTypes.Name, "AdminBypass"),
-                new Claim(ClaimTypes.Role, "Admin"),               // Для AdminPolicy
-                new Claim(ClaimTypes.Role, "Администратор")       // На всякий случай для русской локализации роли
+                new Claim(ClaimTypes.Role, "Admin"),
+                new Claim(ClaimTypes.Role, "Администратор")
             };
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
                 audience: jwtAudience,
                 claims: claims,
-                expires: DateTime.Now.AddDays(14),                 // Токен живет 2 недели
+                expires: DateTime.Now.AddDays(30),
                 signingCredentials: credentials);
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
 
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("\n=================================================================================");
-            Console.WriteLine("👉 ТВОЙ ВРЕМЕННЫЙ ТОКЕН ДЛЯ SWAGGER (СКОПИРУЙ ПОЛНОСТЬЮ СЛЕДУЮЩУЮ СТРОКУ):");
             Console.WriteLine($"Bearer {tokenString}");
             Console.WriteLine("=================================================================================\n");
             Console.ResetColor();
@@ -166,9 +158,10 @@ if (app.Environment.IsDevelopment())
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Не удалось сгенерировать бэкдор-токен: {ex.Message}");
+        Console.WriteLine(ex.Message);
     }
-    // ──────────────────────────────────────────────────────────────────
+     
+     */
 }
 
 app.UseHttpsRedirection();

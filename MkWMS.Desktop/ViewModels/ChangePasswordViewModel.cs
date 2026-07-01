@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.Desktop.Services;
+using MkWMS.Desktop.Views.Dialogs;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,7 +22,7 @@ public partial class ChangePasswordViewModel : BaseViewModel
     [ObservableProperty]
     private string confirmNewPassword = string.Empty;
 
-    // ── Показывать пароль как текст ────────────────────────────────
+
     [ObservableProperty]
     private bool isOldPasswordVisible;
 
@@ -36,7 +37,7 @@ public partial class ChangePasswordViewModel : BaseViewModel
         _apiClient = apiClient ?? throw new ArgumentNullException(nameof(apiClient));
     }
 
-    // ── Команды переключения видимости пароля ──────────────────────
+
 
     [RelayCommand]
     private void ToggleOldPasswordVisibility()
@@ -56,7 +57,7 @@ public partial class ChangePasswordViewModel : BaseViewModel
         IsConfirmPasswordVisible = !IsConfirmPasswordVisible;
     }
 
-    // ── Основная команда смены пароля ──────────────────────────────
+
 
     [RelayCommand]
     private async Task ChangePasswordAsync()
@@ -82,14 +83,13 @@ public partial class ChangePasswordViewModel : BaseViewModel
 
             if (success)
             {
-                MessageBox.Show("Пароль успешно изменён!", "Готово",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                AppMessageBoxWindow.Show("Пароль успешно изменён!", "Готово", AppMessageBoxIcon.Success);
 
                 CloseWindow(true);
             }
             else
             {
-                SetError("Неверный старый пароль или ошибка сервера");
+                SetError(_apiClient.LastErrorMessage ?? "Неверный старый пароль или ошибка сервера");
             }
         }
         catch (Exception ex)

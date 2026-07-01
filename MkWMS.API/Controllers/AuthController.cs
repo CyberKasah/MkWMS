@@ -1,12 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using MkWMS.API.DTOs;
 using MkWMS.API.Services;
 using MkWMS.Data.Entities;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
 
 namespace MkWMS.API.Controllers;
 
@@ -15,12 +12,12 @@ namespace MkWMS.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly UserService _userService;
-    private readonly IConfiguration _config;
+    private readonly ITokenService _tokenService;
 
-    public AuthController(UserService userService, IConfiguration config)
+    public AuthController(UserService userService, ITokenService tokenService)
     {
         _userService = userService;
-        _config = config;
+        _tokenService = tokenService;
     }
 
     [HttpPost("register")]
@@ -106,36 +103,35 @@ public class AuthController : ControllerBase
             });
         }
 
-        // Получаем имена ролей
         var roleNames = await _userService.GetRolesAsync(user.Id);
 
-        // Преобразуем в полноценные RoleDto (с Id)
         var roleDtos = new List<RoleDto>();
         foreach (var roleName in roleNames)
         {
             var role = await _userService.GetRoleByNameAsync(roleName);
             roleDtos.Add(new RoleDto
             {
-                Id = role?.Id ?? 0,  // Если роль не найдена — 0 (но это невозможно)
+                Id = role?.Id ?? 0,
                 Name = roleName
             });
         }
 
-        var token = GenerateJwtToken(user);
+        var (accessToken, refreshToken) = await _tokenService.IssueTokenPairAsync(user);
 
         var userResponse = new
         {
             Id = user.Id,
             Login = user.Login,
             FullName = user.FullName,
-            Roles = roleDtos  // ← теперь массив объектов RoleDto
+            Roles = roleDtos
         };
 
         if (requiresPasswordChange)
         {
             return Ok(new
             {
-                Token = token,
+                Token = accessToken,
+                RefreshToken = refreshToken,
                 RequiresPasswordChange = true,
                 Message = "Требуется смена пароля",
                 User = userResponse
@@ -144,10 +140,35 @@ public class AuthController : ControllerBase
 
         return Ok(new
         {
-            Token = token,
+            Token = accessToken,
+            RefreshToken = refreshToken,
             RequiresPasswordChange = false,
             User = userResponse
         });
+    }
+
+    [HttpPost("refresh")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Refresh(RefreshRequestDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.RefreshToken))
+            return Unauthorized(new { Message = "Сессия истекла, требуется повторный вход" });
+
+        var result = await _tokenService.RotateAsync(dto.RefreshToken);
+        if (!result.Success)
+            return Unauthorized(new { Message = result.Error });
+
+        return Ok(new { Token = result.AccessToken, RefreshToken = result.RefreshToken });
+    }
+
+    [HttpPost("logout")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Logout(RefreshRequestDto dto)
+    {
+        if (!string.IsNullOrWhiteSpace(dto.RefreshToken))
+            await _tokenService.RevokeAsync(dto.RefreshToken);
+
+        return Ok();
     }
 
     [HttpPost("change-password")]
@@ -172,38 +193,8 @@ public class AuthController : ControllerBase
 
         return Ok("Пароль успешно изменён");
     }
-
-    private string GenerateJwtToken(User user)
-    {
-        var roles = _userService.GetRolesAsync(user.Id).Result; // все роли (строки)
-
-        var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Login),
-            new Claim("warehouseId", user.WarehouseId?.ToString() ?? "")
-        };
-
-        // Добавляем ВСЕ роли как ClaimTypes.Role (для авторизации в API)
-        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
-
-        var jwtKey = _config["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key не настроен");
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
-            claims: claims,
-            expires: DateTime.Now.AddMinutes(Convert.ToDouble(_config["Jwt:ExpireMinutes"] ?? "60")),
-            signingCredentials: creds
-        );
-
-        return new JwtSecurityTokenHandler().WriteToken(token);
-    }
 }
 
-// DTO остаются без изменений
 public class RegisterDto
 {
     public string Login { get; set; } = string.Empty;
@@ -223,4 +214,9 @@ public class ChangePasswordDto
 {
     public string OldPassword { get; set; } = string.Empty;
     public string NewPassword { get; set; } = string.Empty;
+}
+
+public class RefreshRequestDto
+{
+    public string RefreshToken { get; set; } = string.Empty;
 }

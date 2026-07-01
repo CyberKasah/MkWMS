@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для SerialNumbersView.xaml
-    /// </summary>
+
+
+
     public partial class SerialNumbersView : UserControl
     {
         public SerialNumbersView()

@@ -60,7 +60,7 @@ public class AuditLogsController : ControllerBase
                 Id = x.Id,
                 UserId = x.UserId,
                 UserLogin = x.User.Login,
-                UserFullName = x.User.FullName ?? x.User.Login ?? "Неизвестный пользователь", // ← теперь точно не пусто
+                UserFullName = x.User.FullName ?? x.User.Login ?? "Неизвестный пользователь",
                 Action = x.Action,
                 ActionDate = x.ActionDate,
                 EntityName = x.EntityName,

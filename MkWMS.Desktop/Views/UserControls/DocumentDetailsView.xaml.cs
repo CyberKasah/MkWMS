@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для DocumentDetailsView.xaml
-    /// </summary>
+
+
+
     public partial class DocumentDetailsView : UserControl
     {
         public DocumentDetailsView()

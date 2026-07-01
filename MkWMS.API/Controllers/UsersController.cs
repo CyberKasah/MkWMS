@@ -14,11 +14,13 @@ public class UsersController : ControllerBase
 {
     private readonly UserService _userService;
     private readonly UserRoleService _userRoleService;
+    private readonly ITokenService _tokenService;
 
-    public UsersController(UserService userService, UserRoleService userRoleService)
+    public UsersController(UserService userService, UserRoleService userRoleService, ITokenService tokenService)
     {
         _userService = userService;
         _userRoleService = userRoleService;
+        _tokenService = tokenService;
     }
 
     private int GetCurrentUserId() =>
@@ -46,7 +48,7 @@ public class UsersController : ControllerBase
         return Ok(result);
     }
 
-    // GET: api/users/{id}
+
     [HttpGet("{id}")]
     [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> GetById(int id)
@@ -58,7 +60,7 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 
-    // POST: api/users
+
     [HttpPost]
     [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Create(CreateUserWithRolesDto dto)
@@ -66,7 +68,7 @@ public class UsersController : ControllerBase
         if (await _userService.GetByLoginAsync(dto.Login) != null)
             return BadRequest($"Пользователь с логином '{dto.Login}' уже существует");
 
-        // Проверка существования всех ролей
+
         if (dto.RoleIds != null)
         {
             foreach (var roleId in dto.RoleIds)
@@ -81,7 +83,7 @@ public class UsersController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
 
-    // PUT: api/users/{id}
+
     [HttpPut("{id}")]
     [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Update(int id, UpdateUserDto dto)
@@ -93,7 +95,7 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 
-    // DELETE: api/users/{id}
+
     [HttpDelete("{id}")]
     [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Delete(int id)
@@ -108,7 +110,7 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    // PATCH: api/users/{id}/deactivate
+
     [HttpPatch("{id}/deactivate")]
     [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Deactivate(int id)
@@ -120,10 +122,12 @@ public class UsersController : ControllerBase
         if (!success)
             return NotFound($"Пользователь с ID {id} не найден");
 
+        await _tokenService.RevokeAllForUserAsync(id);
+
         return NoContent();
     }
 
-    // PATCH: api/users/{id}/activate
+
     [HttpPatch("{id}/activate")]
     [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Activate(int id)
@@ -138,9 +142,54 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    // ──────────────────────────────────────────────
-    // Управление ролями
-    // ──────────────────────────────────────────────
+
+
+
+
+    [HttpPost("{id}/reset-password")]
+    [Authorize(Policy = "AdminPolicy")]
+    public async Task<IActionResult> ResetPassword(int id, AdminResetPasswordDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length < 4)
+            return BadRequest("Новый пароль должен содержать минимум 4 символа");
+
+
+        var adminId = GetCurrentUserId();
+        var admin = await _userService.GetByIdAsync(adminId);
+        if (admin == null)
+            return Unauthorized("Не удалось определить администратора");
+
+        bool adminPasswordValid;
+        try
+        {
+            adminPasswordValid = BCrypt.Net.BCrypt.Verify(dto.AdminPassword, admin.PasswordHash);
+        }
+        catch (Exception)
+        {
+            adminPasswordValid = false;
+        }
+
+        if (!adminPasswordValid)
+            return BadRequest("Неверный пароль администратора");
+
+        var target = await _userService.GetByIdAsync(id);
+        if (target == null)
+            return NotFound($"Пользователь с ID {id} не найден");
+
+        target.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+
+
+
+        target.RequiresPasswordChange = false;
+        await _userService.UpdateUserAsync(target);
+        await _tokenService.RevokeAllForUserAsync(target.Id);
+
+        return Ok(new { Message = $"Пароль пользователя «{target.Login}» успешно изменён" });
+    }
+
+
+
+
 
     [HttpGet("{id}/roles")]
     [Authorize(Policy = "AdminPolicy")]

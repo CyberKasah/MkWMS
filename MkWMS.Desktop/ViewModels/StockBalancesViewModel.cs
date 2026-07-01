@@ -15,7 +15,7 @@ public partial class StockBalancesViewModel : BaseViewModel
     [ObservableProperty] private ObservableCollection<StockBalanceReportDto> _balances = new();
     [ObservableProperty] private string _searchText = string.Empty;
 
-    // Пагинация (согласно стилю BaseCrudViewModel)
+
     [ObservableProperty] private int _currentPage = 1;
     [ObservableProperty] private int _totalPages = 1;
     [ObservableProperty] private int _totalCount = 0;
@@ -40,7 +40,7 @@ public partial class StockBalancesViewModel : BaseViewModel
             var req = new PagedRequestDto
             {
                 Page = CurrentPage,
-                PageSize = 50, // Оптимально для отображения
+                PageSize = 50,
                 Search = string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim()
             };
 
@@ -68,7 +68,7 @@ public partial class StockBalancesViewModel : BaseViewModel
     [RelayCommand]
     private void Refresh() => _ = LoadAsync();
 
-    // Пагинация
+
     [RelayCommand(CanExecute = nameof(CanGoPrevious))]
     public async Task PreviousPageAsync() { CurrentPage--; await LoadAsync(); }
     private bool CanGoPrevious => CurrentPage > 1;

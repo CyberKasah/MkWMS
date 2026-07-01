@@ -1,5 +1,6 @@
 ﻿using System.Threading.Tasks;
 using System.Windows;
+using MkWMS.Desktop.Views.Dialogs;
 using CommunityToolkit.Mvvm.Input;
 using MkWMS.API.DTOs;
 using MkWMS.Desktop.Services;
@@ -35,23 +36,21 @@ public partial class WarehousesViewModel : BaseCrudViewModel<WarehouseDto>
     {
         if (SelectedItem == null || SelectedItem.Id <= 0) return;
 
-        var result = MessageBox.Show(
+        var confirmed = AppMessageBoxWindow.Confirm(
             $"Вы уверены, что хотите полностью удалить склад '{SelectedItem.Name}' и все связанные данные?",
-            "Внимание",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Warning);
+            "Внимание");
 
-        if (result == MessageBoxResult.Yes)
+        if (confirmed)
         {
             await DeleteAsync();
             if (string.IsNullOrEmpty(ErrorMessage))
             {
-                MessageBox.Show("Склад удален.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppMessageBoxWindow.Show("Склад удалён.", "Готово", AppMessageBoxIcon.Success);
             }
         }
     }
 
-    // Проверка, что выбран существующий в БД объект
+
     private bool IsEntitySelected => SelectedItem != null && SelectedItem.Id > 0;
 
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
@@ -59,7 +58,7 @@ public partial class WarehousesViewModel : BaseCrudViewModel<WarehouseDto>
         base.OnPropertyChanged(e);
         if (e.PropertyName == nameof(SelectedItem))
         {
-            // Обновляем состояние кнопок при смене выбора
+
             DeleteWarehouseCommand.NotifyCanExecuteChanged();
         }
     }

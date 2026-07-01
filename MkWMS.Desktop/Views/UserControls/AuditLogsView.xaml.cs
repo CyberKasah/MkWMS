@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для AuditLogsView.xaml
-    /// </summary>
+
+
+
     public partial class AuditLogsView : UserControl
     {
         public AuditLogsView()

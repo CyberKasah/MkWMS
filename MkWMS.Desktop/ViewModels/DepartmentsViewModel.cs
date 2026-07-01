@@ -14,11 +14,11 @@ public partial class DepartmentsViewModel : BaseCrudViewModel<DepartmentDto>
 
     public DepartmentsViewModel(ApiClient api) : base(api, "departments")
     {
-        // Загружаем таблицу Departments И СКЛАДЫ одновременно (параллельно)
-        // → DataGrid начинает загружаться СРАЗУ при создании ViewModel
+
+
         _ = Task.WhenAll(
-            LoadAsync(),           // таблица Departments (Items)
-            LoadWarehousesAsync()  // справочник складов (для ComboBox)
+            LoadAsync(),
+            LoadWarehousesAsync()
         );
     }
 

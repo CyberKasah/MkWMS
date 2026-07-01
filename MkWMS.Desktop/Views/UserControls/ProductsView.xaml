@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+             xmlns:services="clr-namespace:MkWMS.Desktop.Services"
              xmlns:views="clr-namespace:MkWMS.Desktop.Views.UserControls"
              mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1100">
@@ -22,7 +23,7 @@
                         <ColumnDefinition Width="360"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- Левая часть: таблица и инструменты -->
+
                     <Grid Grid.Column="0" Margin="0,0,12,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -53,7 +54,7 @@ Margin="0,0,6,0"/>
                                     Command="{Binding CreateNewCommand}"
                                     Style="{StaticResource PrimaryButton}"
                                     MinWidth="100" Margin="0,0,6,0"/>
-                            <!-- НОВАЯ КНОПКА ПЕЧАТИ ЭТИКЕТКИ -->
+
                             <Button Content="Печать"
                                     Command="{Binding PrintLabelCommand}"
                                     Style="{StaticResource PrimaryButton}"
@@ -61,6 +62,7 @@ Margin="0,0,6,0"/>
                               IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}" />
                             <Button Content="Удалить"
                                     Command="{Binding DeleteCommand}"
+                                    Visibility="{Binding Source={x:Static services:AuthService.Current}, Path=IsAdministrator, Converter={StaticResource BoolToVis}}"
                                     Style="{StaticResource PrimaryButton}"
                                     Background="#E74C3C" BorderBrush="#C0392B"
                                     MinWidth="100"
@@ -96,7 +98,7 @@ Margin="0,0,6,0"/>
                         </StackPanel>
                     </Grid>
 
-                    <!-- Правая панель: редактирование / создание -->
+
                     <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="10"
                             Padding="16,16,16,12" Effect="{StaticResource Elevation2}"
                             Visibility="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}">

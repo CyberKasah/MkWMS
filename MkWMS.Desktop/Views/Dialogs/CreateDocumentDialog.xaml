@@ -14,8 +14,6 @@
     <Window.Resources>
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
         <converters:NotNullToBoolConverter x:Key="NotNullToBool" />
-        <converters:ItemSumConverter x:Key="ItemSumConverter" />
-        <converters:DocumentTotalConverter x:Key="DocumentTotalConverter" />
     </Window.Resources>
 
     <Grid Margin="12">
@@ -32,15 +30,15 @@
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-                <Button Content="Добавить позицию" 
+                <Button Content="Добавить позицию"
                         Command="{Binding AddItemCommand}"
-                        Style="{StaticResource PrimaryButton}" 
+                        Style="{StaticResource PrimaryButton}"
                         Width="160" Height="40" Margin="0,0,8,0"/>
 
-                <Button Content="Удалить позицию" 
+                <Button Content="Удалить позицию"
                         Command="{Binding RemoveItemCommand}"
                         CommandParameter="{Binding ElementName=ItemsGrid, Path=SelectedItem}"
-                        Style="{StaticResource DangerButton}" 
+                        Style="{StaticResource DangerButton}"
                         Width="160" Height="40"
                         IsEnabled="{Binding ElementName=ItemsGrid, Path=SelectedItem, Converter={StaticResource NotNullToBool}}"/>
             </StackPanel>
@@ -78,7 +76,32 @@
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>
 
-                    <DataGridTextColumn Header="Кол-во" 
+
+                    <DataGridTemplateColumn Header="Ячейка" Width="140">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ComboBox ItemsSource="{Binding DataContext.FilteredStorageLocations, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          SelectedValue="{Binding StorageLocationId, Mode=OneWay}"
+                                          SelectedValuePath="Id"
+                                          DisplayMemberPath="Name"
+                                          IsEnabled="False"
+                                          Background="Transparent"
+                                          BorderThickness="0"
+                                          VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <ComboBox ItemsSource="{Binding DataContext.FilteredStorageLocations, RelativeSource={RelativeSource AncestorType=Window}}"
+                                          SelectedValue="{Binding StorageLocationId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                          SelectedValuePath="Id"
+                                          DisplayMemberPath="Name"
+                                          IsDropDownOpen="True"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <DataGridTextColumn Header="Кол-во"
                     Binding="{Binding Quantity, UpdateSourceTrigger=PropertyChanged}"/>
                     <DataGridTextColumn Header="Цена" Width="100"
                     Binding="{Binding Price, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
@@ -89,8 +112,9 @@
                     ElementStyle="{StaticResource RightAlign}"
                     Foreground="{StaticResource TextSecondary}"/>
 
+
                     <DataGridTextColumn Header="Сумма" Width="130" IsReadOnly="True"
-                                        Binding="{Binding ., Converter={StaticResource ItemSumConverter}}"
+                                        Binding="{Binding SubTotal, StringFormat=N2}"
                                         ElementStyle="{StaticResource RightAlign}"/>
 
                     <DataGridTextColumn Header="Сумма с НДС" Width="130" IsReadOnly="True"
@@ -100,11 +124,17 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
-                <TextBlock Text="Итого:" FontSize="15" FontWeight="SemiBold" Margin="0,0,8,0"/>
-                <TextBlock Text="{Binding Items, Converter={StaticResource DocumentTotalConverter}}"
-                           FontSize="16" FontWeight="Bold" Foreground="{StaticResource Primary}"/>
-            </StackPanel>
+            <Border Grid.Row="2" Background="{StaticResource SurfaceHover}" CornerRadius="8"
+                    Padding="16,10" Margin="0,10,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <TextBlock Text="Позиций:" FontSize="14" Foreground="{StaticResource TextSecondary}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding Items.Count}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,28,0"/>
+                    <TextBlock Text="Итого по документу:" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                    <TextBlock Text="{Binding TotalDocumentSum, StringFormat='{}{0:N2} ₽'}"
+                               FontSize="18" FontWeight="Bold" Foreground="{StaticResource Primary}"/>
+                </StackPanel>
+            </Border>
         </Grid>
 
         <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="10"
@@ -158,12 +188,12 @@
                                Visibility="{Binding ErrorMessage, Converter={StaticResource NotNullToBool}}"/>
 
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <Button Content="Отмена" 
+                        <Button Content="Отмена"
                                 Command="{Binding CancelCommand}"
-                                Style="{StaticResource OutlineButton}" 
+                                Style="{StaticResource OutlineButton}"
                                 MinWidth="180" Height="42" Margin="0,0,16,0" Cursor="Hand"/>
 
-                        <Button Content="Создать" 
+                        <Button Content="Создать"
                                 Command="{Binding SaveCommand}"
                                 MinWidth="180" Height="42" Cursor="Hand">
                             <Button.Style>

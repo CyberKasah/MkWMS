@@ -9,7 +9,7 @@ namespace MkWMS.API.Controllers;
 
 [ApiController]
 [Route("api/counterparties")]
-[Authorize] // Доступно всем авторизованным, для удаления можно добавить AdminPolicy
+[Authorize]
 public class CounterpartiesController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
@@ -112,7 +112,7 @@ public class CounterpartiesController : ControllerBase
         var entity = await _context.Counterparties.FindAsync(id);
         if (entity == null) return NotFound();
 
-        // Проверяем, нет ли документов по этому контрагенту
+
         var hasDocs = await _context.Documents.AnyAsync(d => d.CounterpartyId == id);
         if (hasDocs) return BadRequest("Нельзя удалить контрагента, по которому есть документы");
 

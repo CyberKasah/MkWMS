@@ -9,7 +9,7 @@ namespace MkWMS.API.Controllers;
 
 [ApiController]
 [Route("api/products")]
-[Authorize] // По умолчанию просмотр разрешен всем вошедшим
+[Authorize]
 public class ProductsController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
@@ -62,7 +62,8 @@ public class ProductsController : ControllerBase
                 RetailPrice = x.RetailPrice,
                 VatRate = x.VatRate,
                 IsMarked = x.IsMarked,
-                IsVet = x.IsVet
+                IsVet = x.IsVet,
+                RfidBaseTag = x.RfidBaseTag
             })
             .ToListAsync();
 
@@ -89,12 +90,16 @@ public class ProductsController : ControllerBase
             RetailPrice = x.RetailPrice,
             VatRate = x.VatRate,
             IsMarked = x.IsMarked,
-            IsVet = x.IsVet
+            IsVet = x.IsVet,
+            RfidBaseTag = x.RfidBaseTag
         });
     }
 
+
+
+
     [HttpPost]
-    [Authorize(Policy = "AdminPolicy")]
+    [Authorize]
     public async Task<IActionResult> Create(ProductDto dto)
     {
         var entity = new Product
@@ -106,12 +111,13 @@ public class ProductsController : ControllerBase
             UseSerialNumbers = dto.UseSerialNumbers,
             UseBatches = dto.UseBatches,
             CreatedDate = DateTime.UtcNow,
-            // Сохранение цен
+
             PurchasePrice = dto.PurchasePrice,
             RetailPrice = dto.RetailPrice,
             VatRate = dto.VatRate,
             IsMarked = dto.IsMarked,
-            IsVet = dto.IsVet
+            IsVet = dto.IsVet,
+            RfidBaseTag = dto.RfidBaseTag
         };
 
         _context.Products.Add(entity);
@@ -122,7 +128,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "AdminPolicy")]
+    [Authorize]
     public async Task<IActionResult> Update(int id, ProductDto dto)
     {
         var entity = await _context.Products.FindAsync(id);
@@ -134,17 +140,17 @@ public class ProductsController : ControllerBase
         entity.Unit = dto.Unit;
         entity.UseSerialNumbers = dto.UseSerialNumbers;
         entity.UseBatches = dto.UseBatches;
-        // Обновление цен
+
         entity.PurchasePrice = dto.PurchasePrice;
         entity.RetailPrice = dto.RetailPrice;
         entity.VatRate = dto.VatRate;
         entity.IsMarked = dto.IsMarked;
         entity.IsVet = dto.IsVet;
+        entity.RfidBaseTag = dto.RfidBaseTag;
 
         await _context.SaveChangesAsync();
         return NoContent();
     }
-
 
     [HttpDelete("{id}")]
     [Authorize(Policy = "AdminPolicy")]
@@ -182,10 +188,10 @@ public class ProductsController : ControllerBase
             RetailPrice = x.RetailPrice,
             VatRate = x.VatRate,
             IsMarked = x.IsMarked,
-            IsVet = x.IsVet
+            IsVet = x.IsVet,
+            RfidBaseTag = x.RfidBaseTag
         });
     }
-
 
     [HttpGet("label/{id}")]
     [AllowAnonymous]
@@ -208,13 +214,13 @@ public class ProductsController : ControllerBase
         }}
         .labels-grid {{
             display: grid;
-            grid-template-columns: repeat(3, 100mm);  /* 3 в ряд */
+            grid-template-columns: repeat(3, 100mm);  
             grid-gap: 10mm 8mm;
             justify-content: center;
         }}
         .label {{
             width: 100mm;
-            height: 100mm;  /* КВАДРАТНЫЙ формат — QR большой и не обрезается */
+            height: 100mm;  
             border: 1px solid #000;
             padding: 6mm;
             box-sizing: border-box;

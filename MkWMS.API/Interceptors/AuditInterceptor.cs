@@ -13,7 +13,7 @@ public class AuditInterceptor : SaveChangesInterceptor
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    // Потокобезопасная таблица для хранения логов-черновиков между фазами Saving и Saved
+
     private static readonly ConditionalWeakTable<DbContext, List<AuditPendingEntry>> _pendingAudits = new();
 
     public AuditInterceptor(IHttpContextAccessor httpContextAccessor)
@@ -21,9 +21,9 @@ public class AuditInterceptor : SaveChangesInterceptor
         _httpContextAccessor = httpContextAccessor;
     }
 
-    // =========================================================================
-    // ФАЗА 1: Собираем изменения ДО сохранения в базу (когда ID еще отрицательные)
-    // =========================================================================
+
+
+
     public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
@@ -45,7 +45,7 @@ public class AuditInterceptor : SaveChangesInterceptor
 
         foreach (var entry in entries)
         {
-           
+
             if (entry.Entity is AuditLog) continue;
 
             var entityName = entry.Entity.GetType().Name;
@@ -80,7 +80,7 @@ public class AuditInterceptor : SaveChangesInterceptor
             {
                 pendingList.Add(new AuditPendingEntry
                 {
-                    Entry = entry, // Сохраняем ссылку на объект, чтобы потом забрать реальный ID
+                    Entry = entry,
                     UserId = userId,
                     EntityName = entityName,
                     State = entry.State,
@@ -91,16 +91,16 @@ public class AuditInterceptor : SaveChangesInterceptor
 
         if (pendingList.Any())
         {
-            // Сохраняем черновики в кэш для текущего контекста БД
+
             _pendingAudits.AddOrUpdate(context, pendingList);
         }
 
         return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
-    // =========================================================================
-    // ФАЗА 2: Пишем логи ПОСЛЕ сохранения, когда база выдала нормальные ID
-    // =========================================================================
+
+
+
     public override async ValueTask<int> SavedChangesAsync(
         SaveChangesCompletedEventData eventData,
         int result,
@@ -108,19 +108,19 @@ public class AuditInterceptor : SaveChangesInterceptor
     {
         var context = eventData.Context;
 
-        // Проверяем, есть ли для этого запроса отложенные логи
+
         if (context != null && _pendingAudits.TryGetValue(context, out var pendingList))
         {
-            // Обязательно удаляем из кэша, иначе уйдем в рекурсию при следующем SaveChanges
+
             _pendingAudits.Remove(context);
 
             foreach (var pending in pendingList)
             {
-                // 🔥 ВОТ ОНО! Теперь база отработала, и у Entry лежит нормальный сгенерированный ID
+
                 var entityId = pending.Entry.Properties
      .FirstOrDefault(p => p.Metadata.IsPrimaryKey())?.CurrentValue?.ToString() ?? "0";
 
-                // Переводим технические имена на русский
+
                 string entityNameRu = pending.EntityName switch
                 {
                     "Product" => "Товар",
@@ -139,7 +139,7 @@ public class AuditInterceptor : SaveChangesInterceptor
                     _ => pending.EntityName
                 };
 
-                // Формируем понятное русское действие
+
                 var actionStr = pending.State switch
                 {
                     EntityState.Added => $"Создал запись: {entityNameRu}",
@@ -159,15 +159,15 @@ public class AuditInterceptor : SaveChangesInterceptor
                 });
             }
 
-            // Вызываем сохранение логов. 
-            // Это запустит SavingChangesAsync еще раз, но сработает "if (entry.Entity is AuditLog) continue;"
+
+
             await context.SaveChangesAsync(cancellationToken);
         }
 
         return await base.SavedChangesAsync(eventData, result, cancellationToken);
     }
 
-    // Вспомогательный класс для хранения данных между фазами
+
     private class AuditPendingEntry
     {
         public EntityEntry Entry { get; set; } = null!;

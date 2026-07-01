@@ -2,11 +2,11 @@
 
 public static class ApiEndpoints
 {
-    // --- Auth ---
     public const string Login = "auth/login";
+    public const string Refresh = "auth/refresh";
+    public const string Logout = "auth/logout";
     public const string ChangePassword = "auth/change-password";
 
-    // --- Справочники (Каталог) ---
     public const string Products = "products";
     public const string Batches = "batches";
     public const string SerialNumbers = "serialnumbers";
@@ -16,18 +16,15 @@ public static class ApiEndpoints
     public const string Counterparties = "counterparties";
     public const string DocumentTypes = "documenttypes";
 
-    // --- Документооборот и Склад ---
     public const string Documents = "documents";
     public const string Inventory = "inventory";
     public const string StockBalances = "stockbalances";
     public const string StockMovements = "stockmovements";
 
-    // --- Администрирование ---
     public const string Users = "users";
     public const string Roles = "roles";
     public const string AuditLogs = "auditlogs";
 
-    // --- Сервисные модули v2.0 ---
     public const string Reports = "reports";
     public const string Print = "print";
     public const string Files = "files";

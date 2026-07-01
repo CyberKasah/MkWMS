@@ -37,5 +37,13 @@ namespace MkWMS.API.Services
             User.Claims.Any(c => c.Type == ClaimTypes.Role &&
                                  (c.Value.Trim().Replace("\"", "").Replace("\n", "") == "Администратор" ||
                                   c.Value.Trim().Replace("\"", "").Replace("\n", "") == "Admin"));
+
+
+
+        public bool IsManager =>
+            User.Claims.Any(c => c.Type == ClaimTypes.Role &&
+                                 c.Value.Trim().Replace("\"", "").Replace("\n", "") == "Руководитель");
+
+        public bool CanSeeAllWarehouses => IsAdmin || IsManager;
     }
 }

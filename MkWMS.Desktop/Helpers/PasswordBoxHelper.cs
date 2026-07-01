@@ -1,7 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 
-namespace MkWMS.Desktop.Helpers  // ← должен быть именно этот namespace
+namespace MkWMS.Desktop.Helpers
 {
     public static class PasswordBoxHelper
     {

@@ -25,14 +25,18 @@ namespace MkWMS.Desktop.Services
         {
             _auth = auth;
 
-            var handler = new HttpClientHandler
+            const string baseAddress = "https://localhost:7000/api/";
+
+            var certBypassHandler = new HttpClientHandler
             {
                 ServerCertificateCustomValidationCallback = (_, _, _, _) => true
             };
 
-            _http = new HttpClient(handler)
+            var refreshHandler = new AuthRefreshHandler(_auth, baseAddress, certBypassHandler);
+
+            _http = new HttpClient(refreshHandler)
             {
-                BaseAddress = new Uri("https://localhost:7000/api/"),
+                BaseAddress = new Uri(baseAddress),
                 Timeout = TimeSpan.FromSeconds(30)
             };
         }
@@ -45,10 +49,10 @@ namespace MkWMS.Desktop.Services
                 _http.DefaultRequestHeaders.Authorization = null;
         }
 
-        // =========================================================
-        // AUTH
-        // =========================================================
-        public async Task<(bool Success, string? Message, bool RequiresPasswordChange, string? Token, UserDto? User)>
+
+
+
+        public async Task<(bool Success, string? Message, bool RequiresPasswordChange, string? Token, string? RefreshToken, UserDto? User)>
             LoginAsync(string login, string password)
         {
             try
@@ -59,29 +63,76 @@ namespace MkWMS.Desktop.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var dto = JsonSerializer.Deserialize<LoginResponseDto>(json, _json);
-                    return (true, dto?.Message, dto?.RequiresPasswordChange ?? false, dto?.Token, dto?.User);
+                    return (true, dto?.Message, dto?.RequiresPasswordChange ?? false, dto?.Token, dto?.RefreshToken, dto?.User);
                 }
 
                 var err = JsonSerializer.Deserialize<LoginResponseDto>(json, _json);
-                return (false, err?.Message ?? "Ошибка сервера", false, null, null);
+                return (false, err?.Message ?? "Ошибка сервера", false, null, null, null);
             }
             catch (Exception ex)
             {
-                return (false, $"Ошибка сети: {ex.Message}", false, null, null);
+                return (false, $"Ошибка сети: {ex.Message}", false, null, null, null);
+            }
+        }
+
+
+
+        public async Task LogoutAsync()
+        {
+            if (string.IsNullOrEmpty(_auth.RefreshToken)) return;
+            try
+            {
+                await _http.PostAsJsonAsync("auth/logout", new { RefreshToken = _auth.RefreshToken });
+            }
+            catch
+            {
+
             }
         }
 
         public async Task<bool> ChangePasswordAsync(string oldPass, string newPass)
         {
             AddAuth();
+            LastErrorMessage = null;
             var dto = new { OldPassword = oldPass, NewPassword = newPass };
-            var response = await _http.PostAsJsonAsync(ApiEndpoints.ChangePassword, dto);
-            return response.IsSuccessStatusCode;
+            try
+            {
+                var response = await _http.PostAsJsonAsync(ApiEndpoints.ChangePassword, dto);
+                if (!response.IsSuccessStatusCode)
+                    LastErrorMessage = await ReadFriendlyErrorAsync(response);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                LastErrorMessage = $"Ошибка соединения с сервером: {ex.Message}";
+                return false;
+            }
         }
 
-        // =========================================================
-        // UNIVERSAL CRUD
-        // =========================================================
+
+
+
+        public async Task<(bool Success, string? Message)> ResetUserPasswordAsync(int userId, string newPassword, string adminPassword)
+        {
+            AddAuth();
+            var dto = new AdminResetPasswordDto { NewPassword = newPassword, AdminPassword = adminPassword };
+            try
+            {
+                var response = await _http.PostAsJsonAsync($"{ApiEndpoints.Users}/{userId}/reset-password", dto);
+                var body = await response.Content.ReadAsStringAsync();
+                if (response.IsSuccessStatusCode)
+                    return (true, $"Пароль пользователя успешно изменён");
+                return (false, string.IsNullOrWhiteSpace(body) ? "Ошибка сервера" : body.Trim('"'));
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Ошибка сети: {ex.Message}");
+            }
+        }
+
+
+
+
         public async Task<PagedResult<T>?> GetPagedAsync<T>(string endpoint, PagedRequestDto req)
         {
             AddAuth();
@@ -117,44 +168,95 @@ namespace MkWMS.Desktop.Services
             catch { return default; }
         }
 
+
+
+
+
+        public string? LastErrorMessage { get; private set; }
+
+        private async Task<string> ReadFriendlyErrorAsync(HttpResponseMessage response)
+        {
+            string body;
+            try { body = await response.Content.ReadAsStringAsync(); }
+            catch { body = string.Empty; }
+
+            body = body?.Trim('"', ' ', '\n', '\r') ?? string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(body) && body.Length < 500 && !body.TrimStart().StartsWith("<"))
+                return body;
+
+            return response.StatusCode switch
+            {
+                System.Net.HttpStatusCode.Conflict => "Такие данные уже существуют в системе",
+                System.Net.HttpStatusCode.Forbidden => "Недостаточно прав для этого действия",
+                System.Net.HttpStatusCode.Unauthorized => "Сессия истекла, выполните вход повторно",
+                System.Net.HttpStatusCode.NotFound => "Запись не найдена (возможно, уже удалена)",
+                System.Net.HttpStatusCode.BadRequest => "Сервер отклонил данные — проверьте заполненные поля",
+                _ => $"Ошибка сервера ({(int)response.StatusCode})"
+            };
+        }
+
         public async Task<T?> CreateAsync<T>(string endpoint, T dto)
         {
             AddAuth();
+            LastErrorMessage = null;
             try
             {
                 var response = await _http.PostAsJsonAsync(endpoint, dto);
-                return response.IsSuccessStatusCode
-                    ? await response.Content.ReadFromJsonAsync<T>(_json)
-                    : default;
+                if (response.IsSuccessStatusCode)
+                    return await response.Content.ReadFromJsonAsync<T>(_json);
+
+                LastErrorMessage = await ReadFriendlyErrorAsync(response);
+                return default;
             }
-            catch { return default; }
+            catch (Exception ex)
+            {
+                LastErrorMessage = $"Ошибка соединения с сервером: {ex.Message}";
+                return default;
+            }
         }
 
         public async Task<bool> UpdateAsync<T>(string endpoint, int id, T dto)
         {
             AddAuth();
+            LastErrorMessage = null;
             try
             {
                 var response = await _http.PutAsJsonAsync($"{endpoint}/{id}", dto);
-                return response.IsSuccessStatusCode;
+                if (response.IsSuccessStatusCode) return true;
+
+                LastErrorMessage = await ReadFriendlyErrorAsync(response);
+                return false;
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                LastErrorMessage = $"Ошибка соединения с сервером: {ex.Message}";
+                return false;
+            }
         }
 
         public async Task<bool> DeleteAsync(string endpoint, int id)
         {
             AddAuth();
+            LastErrorMessage = null;
             try
             {
                 var response = await _http.DeleteAsync($"{endpoint}/{id}");
-                return response.IsSuccessStatusCode;
+                if (response.IsSuccessStatusCode) return true;
+
+                LastErrorMessage = await ReadFriendlyErrorAsync(response);
+                return false;
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                LastErrorMessage = $"Ошибка соединения с сервером: {ex.Message}";
+                return false;
+            }
         }
 
-        // =========================================================
-        // DOCUMENTS
-        // =========================================================
+
+
+
         public async Task<DocumentDto?> GetDocumentByIdAsync(int id)
             => await GetByIdAsync<DocumentDto>(ApiEndpoints.Documents, id);
         private class CreateResponse { public int Id { get; set; } }
@@ -166,7 +268,7 @@ namespace MkWMS.Desktop.Services
                 var response = await _http.PostAsJsonAsync(ApiEndpoints.Documents, dto);
                 if (!response.IsSuccessStatusCode) return null;
 
-                // Десериализуем именно в маленький объект
+
                 var created = await response.Content.ReadFromJsonAsync<CreateResponse>(_json);
                 return created?.Id;
             }
@@ -176,15 +278,37 @@ namespace MkWMS.Desktop.Services
         public async Task<bool> PostDocumentAsync(int id)
         {
             AddAuth();
-            var response = await _http.PostAsync($"{ApiEndpoints.Documents}/{id}/post", null);
-            return response.IsSuccessStatusCode;
+            LastErrorMessage = null;
+            try
+            {
+                var response = await _http.PostAsync($"{ApiEndpoints.Documents}/{id}/post", null);
+                if (!response.IsSuccessStatusCode)
+                    LastErrorMessage = await ReadFriendlyErrorAsync(response);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                LastErrorMessage = $"Ошибка соединения с сервером: {ex.Message}";
+                return false;
+            }
         }
 
         public async Task<bool> UnpostDocumentAsync(int id)
         {
             AddAuth();
-            var response = await _http.PostAsync($"{ApiEndpoints.Documents}/{id}/unpost", null);
-            return response.IsSuccessStatusCode;
+            LastErrorMessage = null;
+            try
+            {
+                var response = await _http.PostAsync($"{ApiEndpoints.Documents}/{id}/unpost", null);
+                if (!response.IsSuccessStatusCode)
+                    LastErrorMessage = await ReadFriendlyErrorAsync(response);
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                LastErrorMessage = $"Ошибка соединения с сервером: {ex.Message}";
+                return false;
+            }
         }
 
         public async Task<PagedResult<DocumentDto>?> GetDocumentsAsync(PagedRequestDto req)
@@ -200,9 +324,9 @@ namespace MkWMS.Desktop.Services
             catch { return null; }
         }
 
-        // =========================================================
-        // USERS & ROLES
-        // =========================================================
+
+
+
         public async Task<List<RoleDto>?> GetRolesAsync()
         {
             var result = await GetPagedAsync<RoleDto>(ApiEndpoints.Roles, new PagedRequestDto { Page = 1, PageSize = 1000 });
@@ -275,9 +399,9 @@ namespace MkWMS.Desktop.Services
             catch { return null; }
         }
 
-        // =========================================================
-        // SPRAVOCHNIKI
-        // =========================================================
+
+
+
         public Task<PagedResult<AuditLogDto>?> GetAuditLogsAsync(PagedRequestDto req)
             => GetPagedAsync<AuditLogDto>(ApiEndpoints.AuditLogs, req);
 
@@ -312,9 +436,9 @@ namespace MkWMS.Desktop.Services
             return result?.Items;
         }
 
-        // =========================================================
-        // COUNTERPARTIES
-        // =========================================================
+
+
+
         public Task<PagedResult<CounterpartyDto>?> GetCounterpartiesAsync(PagedRequestDto req)
             => GetPagedAsync<CounterpartyDto>(ApiEndpoints.Counterparties, req);
 
@@ -327,9 +451,9 @@ namespace MkWMS.Desktop.Services
         public Task<bool> DeleteCounterpartyAsync(int id)
             => DeleteAsync(ApiEndpoints.Counterparties, id);
 
-        // =========================================================
-        // WAREHOUSES & DEPARTMENTS
-        // =========================================================
+
+
+
         public async Task<List<WarehouseDto>?> GetAllWarehousesAsync()
         {
             var result = await GetPagedAsync<WarehouseDto>(ApiEndpoints.Warehouses, new PagedRequestDto { Page = 1, PageSize = 1000 });
@@ -350,9 +474,9 @@ namespace MkWMS.Desktop.Services
             catch { return null; }
         }
 
-        // =========================================================
-        // RFID & FILES & PRINT
-        // =========================================================
+
+
+
         public async Task<RfidScanResultDto?> GetItemByRfidAsync(string rfid)
         {
             AddAuth();
@@ -375,7 +499,7 @@ namespace MkWMS.Desktop.Services
             try
             {
                 using var content = new MultipartFormDataContent();
-                using var fileStream = File.OpenRead(path); // using закроет поток при ошибке
+                using var fileStream = File.OpenRead(path);
                 var file = new StreamContent(fileStream);
                 file.Headers.ContentType = MediaTypeHeaderValue.Parse("application/octet-stream");
 
@@ -401,7 +525,7 @@ namespace MkWMS.Desktop.Services
         public async Task<byte[]?> DownloadDocumentPrintAsync(int documentId, string printType)
         {
             AddAuth();
-            // API endpoint должен соответствовать: api/documents/{id}/print/torg12 (или upd, inv3)
+
             var response = await _http.GetAsync($"documents/{documentId}/print/{printType}");
             if (response.IsSuccessStatusCode)
                 return await response.Content.ReadAsByteArrayAsync();
@@ -433,13 +557,13 @@ namespace MkWMS.Desktop.Services
                 : null;
         }
 
-        // =========================================================
-        // REPORTS
-        // =========================================================
+
+
+
         public Task<PagedResult<StockBalanceReportDto>?> GetStockBalancesReportAsync(PagedRequestDto req)
             => GetPagedAsync<StockBalanceReportDto>($"{ApiEndpoints.Reports}/stock-balances", req);
 
-       
+
         public async Task<PagedResult<StockMovementReportDto>?> GetStockMovementsReportAsync(PagedRequestDto req, DateTime? from = null, DateTime? to = null)
         {
             AddAuth();
@@ -450,7 +574,7 @@ namespace MkWMS.Desktop.Services
                 if (!string.IsNullOrWhiteSpace(req.SortBy)) url += $"&SortBy={req.SortBy}";
                 if (!string.IsNullOrWhiteSpace(req.SortDirection)) url += $"&SortDirection={req.SortDirection}";
 
-                // Добавляем даты в запрос
+
                 if (from.HasValue) url += $"&from={from.Value:yyyy-MM-dd}";
                 if (to.HasValue) url += $"&to={to.Value:yyyy-MM-dd}";
 
@@ -461,10 +585,10 @@ namespace MkWMS.Desktop.Services
             }
             catch { return null; }
         }
-        // =========================================================
-        // INTERNAL DTO
-        // =========================================================
-       
+
+
+
+
         public class RfidScanResultDto
         {
             public string Type { get; set; } = string.Empty;
@@ -499,10 +623,8 @@ namespace MkWMS.Desktop.Services
 
             return await base.SendAsync(request, ct);
         }
-    
-    
+
+
     }
-
-
 
 }

@@ -9,9 +9,6 @@ using System.Windows;
 
 namespace MkWMS.Desktop.ViewModels;
 
-/// <summary>
-/// ViewModel диалогового окна печати этикетки для товара
-/// </summary>
 public partial class PrintLabelViewModel : BaseViewModel
 {
     private readonly ApiClient _api;
@@ -50,18 +47,18 @@ public partial class PrintLabelViewModel : BaseViewModel
 
         try
         {
-            // Формируем URL для печати (предполагаем, что эндпоинт уже есть в ApiClient)
-            // Если у тебя в ApiClient есть метод GetPrintFormAsync — лучше использовать его
+
+
             var url = $"https://localhost:7000/api/products/label/{_productId}?qty={Quantity}";
 
-            // Вариант 1: Открываем в браузере (как было раньше)
+
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
 
-            // Вариант 2 (рекомендуемый): если в ApiClient есть метод для получения PDF/печати
-            // var pdfBytes = await _api.GetPrintFormAsync(_productId, "label", Quantity);
-            // if (pdfBytes != null) { /* сохранить или отправить на принтер */ }
 
-            // Закрываем диалог с успехом
+
+
+
+
             CloseDialog(true);
         }
         catch (Exception ex)

@@ -14,8 +14,8 @@ public class UserService
         _context = context;
     }
 
-    // ==================== БАЗОВЫЙ CRUD ====================
-    // Получить всех пользователей с ролями
+
+
     public async Task<List<UserDto>> GetAllWithRolesAsync()
     {
         return await _context.Users
@@ -37,12 +37,12 @@ public class UserService
             .ToListAsync();
     }
 
-    // Получить пользователя по ID с ролями
+
     public async Task<UserDto?> GetByIdWithRolesAsync(int id)
     {
         return await _context.Users
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-            .Include(u => u.Warehouse) // Добавляем Include для склада
+            .Include(u => u.Warehouse)
             .Where(u => u.Id == id)
             .Select(u => new UserDto
             {
@@ -51,8 +51,8 @@ public class UserService
                 FullName = u.FullName,
                 IsActive = u.IsActive,
                 CreatedDate = u.CreatedDate,
-                WarehouseId = u.WarehouseId, // Мапим ID
-                WarehouseName = u.Warehouse != null ? u.Warehouse.Name : "Не назначен", // Мапим Имя
+                WarehouseId = u.WarehouseId,
+                WarehouseName = u.Warehouse != null ? u.Warehouse.Name : "Не назначен",
                 Roles = u.UserRoles.Select(ur => new RoleDto
                 {
                     Id = ur.Role.Id,
@@ -62,12 +62,12 @@ public class UserService
             .FirstOrDefaultAsync();
     }
 
-    // Получить пользователя по логину с ролями
+
     public async Task<UserDto?> GetByLoginWithRolesAsync(string login)
     {
         return await _context.Users
             .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-            .Include(u => u.Warehouse) // Добавляем Include
+            .Include(u => u.Warehouse)
             .Where(u => u.Login == login)
             .Select(u => new UserDto
             {
@@ -87,13 +87,13 @@ public class UserService
             .FirstOrDefaultAsync();
     }
 
-    // Создать пользователя с ролями
+
     public async Task<UserDto> CreateWithRolesAsync(CreateUserWithRolesDto dto)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // === НОВАЯ ПРОВЕРКА WarehouseId ===
+
             if (dto.WarehouseId.HasValue)
             {
                 if (!await _context.Warehouses.AnyAsync(w => w.Id == dto.WarehouseId.Value && w.IsActive))
@@ -106,7 +106,11 @@ public class UserService
                 FullName = dto.FullName,
                 IsActive = true,
                 CreatedDate = DateTime.UtcNow,
-                RequiresPasswordChange = true,
+
+
+
+
+                RequiresPasswordChange = false,
                 WarehouseId = dto.WarehouseId
             };
             _context.Users.Add(user);
@@ -131,7 +135,7 @@ public class UserService
         }
     }
 
-    // Обновить пользователя
+
     public async Task<UserDto?> UpdateAsync(int id, UpdateUserDto dto)
     {
         var user = await _context.Users.FindAsync(id);
@@ -140,7 +144,7 @@ public class UserService
         if (dto.IsActive.HasValue) user.IsActive = dto.IsActive.Value;
         if (!string.IsNullOrEmpty(dto.Password))
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-        // === НОВАЯ ОБРАБОТКА WarehouseId ===
+
         if (dto.WarehouseId.HasValue)
         {
             if (dto.WarehouseId.Value != user.WarehouseId)
@@ -154,7 +158,7 @@ public class UserService
         return await GetByIdWithRolesAsync(id);
     }
 
-    // Удалить пользователя
+
     public async Task<bool> DeleteAsync(int id)
     {
         var user = await _context.Users
@@ -167,8 +171,8 @@ public class UserService
         return true;
     }
 
-    // ==================== УПРАВЛЕНИЕ РОЛЯМИ ====================
-    // Получить пользователей по роли
+
+
     public async Task<List<UserDto>> GetUsersByRoleAsync(int roleId)
     {
         return await _context.UserRoles
@@ -192,7 +196,7 @@ public class UserService
             .ToListAsync();
     }
 
-    // Получить пользователей не имеющих определенную роль
+
     public async Task<List<UserDto>> GetUsersNotInRoleAsync(int roleId)
     {
         var usersInRole = await _context.UserRoles
@@ -219,7 +223,7 @@ public class UserService
             .ToListAsync();
     }
 
-    // ==================== ПОИСК И ФИЛЬТРАЦИЯ ====================
+
     public async Task<PagedResult<UserDto>> GetPagedAsync(
      string? search,
      bool? isActive,
@@ -232,7 +236,7 @@ public class UserService
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
             .AsQueryable();
-        // Поиск
+
         if (!string.IsNullOrWhiteSpace(search))
         {
             search = search.Trim().ToLower();
@@ -241,10 +245,10 @@ public class UserService
                 (u.FullName != null && u.FullName.ToLower().Contains(search))
             );
         }
-        // Фильтр активности
+
         if (isActive.HasValue)
             query = query.Where(u => u.IsActive == isActive);
-        // Сортировка
+
         sortBy = sortBy?.ToLower();
         sortDirection = sortDirection?.ToLower() == "desc" ? "desc" : "asc";
         query = sortBy switch
@@ -271,10 +275,10 @@ public class UserService
                 FullName = u.FullName,
                 IsActive = u.IsActive,
                 CreatedDate = u.CreatedDate,
-                // ДОБАВЛЯЕМ ЭТИ СТРОКИ:
+
                 WarehouseId = u.WarehouseId,
                 WarehouseName = u.Warehouse != null ? u.Warehouse.Name : "Не назначен",
-                // --------------------
+
                 Roles = u.UserRoles.Select(ur => new RoleDto
                 {
                     Id = ur.Role.Id,
@@ -292,7 +296,7 @@ public class UserService
         };
     }
 
-    // ==================== СУЩЕСТВУЮЩИЕ МЕТОДЫ (ОСТАВЛЯЕМ ДЛЯ СОВМЕСТИМОСТИ) ====================
+
     public async Task<List<User>> GetAllAsync()
     {
         return await _context.Users.AsNoTracking().ToListAsync();
@@ -367,7 +371,7 @@ public class UserService
         return await _context.Roles.AnyAsync(r => r.Id == roleId);
     }
 
-    // НОВЫЙ МЕТОД — нужен для AuthController, чтобы получать Id роли по имени
+
     public async Task<Role?> GetRoleByNameAsync(string name)
     {
         return await _context.Roles

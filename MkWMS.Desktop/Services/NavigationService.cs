@@ -6,7 +6,7 @@ public class NavigationService
 {
     private BaseViewModel? _currentViewModel;
 
-    // Оставляем только один чистый конструктор
+
     public NavigationService() { }
 
     public BaseViewModel? CurrentViewModel

@@ -25,6 +25,10 @@ public class DocumentItem
     public decimal Quantity { get; set; }
     public decimal? Price { get; set; }
     public decimal VatSum { get; set; } = 0;
+
+    public int? StorageLocationId { get; set; }
+    public StorageLocation? StorageLocation { get; set; }
+
     public decimal Sum => Quantity * (Price ?? 0);
 }
 

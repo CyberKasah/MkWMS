@@ -23,6 +23,25 @@ public partial class EditUserViewModel : BaseViewModel
     [ObservableProperty]
     private string _password = string.Empty;
 
+
+
+
+    [ObservableProperty]
+    private string _newPassword = string.Empty;
+
+    [ObservableProperty]
+    private string _newPasswordConfirm = string.Empty;
+
+    [ObservableProperty]
+    private string _adminConfirmPassword = string.Empty;
+
+
+    [ObservableProperty]
+    private string? _resetPasswordMessage;
+
+    [ObservableProperty]
+    private bool _resetPasswordSuccess;
+
     public ObservableCollection<WarehouseDto> Warehouses { get; } = new();
     public ObservableCollection<RoleSelection> Roles { get; } = new();
 
@@ -39,7 +58,7 @@ public partial class EditUserViewModel : BaseViewModel
         _apiClient = apiClient;
         IsNew = false;
 
-        // Клонируем объект, чтобы правки в форме не отражались в списке до сохранения
+
         _user = new UserDto
         {
             Id = existingUser.Id,
@@ -144,6 +163,55 @@ public partial class EditUserViewModel : BaseViewModel
 
     [RelayCommand]
     private void Cancel() => CloseWithResult(false);
+
+
+
+
+    [RelayCommand]
+    private async Task ResetPasswordAsync()
+    {
+        ResetPasswordMessage = null;
+        ResetPasswordSuccess = false;
+
+        if (string.IsNullOrWhiteSpace(NewPassword) || NewPassword.Length < 4)
+        {
+            ResetPasswordMessage = "Новый пароль должен содержать минимум 4 символа";
+            return;
+        }
+        if (NewPassword != NewPasswordConfirm)
+        {
+            ResetPasswordMessage = "Пароли не совпадают";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(AdminConfirmPassword))
+        {
+            ResetPasswordMessage = "Введите свой пароль для подтверждения";
+            return;
+        }
+
+        IsLoading = true;
+        try
+        {
+            var (success, message) = await _apiClient.ResetUserPasswordAsync(User.Id, NewPassword, AdminConfirmPassword);
+            ResetPasswordSuccess = success;
+            ResetPasswordMessage = success
+                ? $"Пароль пользователя «{User.Login}» успешно изменён"
+                : (message ?? "Не удалось сбросить пароль");
+
+            if (success)
+            {
+                NewPassword = string.Empty;
+                NewPasswordConfirm = string.Empty;
+                AdminConfirmPassword = string.Empty;
+            }
+        }
+        catch (Exception ex)
+        {
+            ResetPasswordSuccess = false;
+            ResetPasswordMessage = $"Ошибка: {ex.Message}";
+        }
+        finally { IsLoading = false; }
+    }
 
     private void CloseWithResult(bool result)
     {

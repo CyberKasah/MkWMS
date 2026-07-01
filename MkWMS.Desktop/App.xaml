@@ -6,23 +6,23 @@
              xmlns:views="clr-namespace:MkWMS.Desktop.Views.UserControls">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Подключение глобальных стилей -->
+
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/MkWMS.Desktop;component/Resources/Styles.xaml"/>
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Конвертеры -->
+
             <converters:BoolToVisibilityConverter x:Key="BoolToVis"/>
             <converters:ShowHideConverter x:Key="ShowHideConverter"/>
             <converters:NotNullToBoolConverter x:Key="NotNullToBoolConverter"/>
             <converters:ItemSumConverter x:Key="ItemSumConverter"/>
             <converters:DocumentTotalConverter x:Key="DocumentTotalConverter"/>
-            <!-- ← ВОТ ЭТО ДОБАВЬ! -->
+
             <converters:RolesToStringConverter x:Key="RolesToStringConverter"/>
             <converters:RoleToVisibilityConverter x:Key="RoleToVisibility"/>
             <converters:MultiRoleToVisibilityConverter x:Key="MultiRoleToVis"/>
 
-            <!-- MVVM Navigation: ViewModel -> View -->
+
             <DataTemplate DataType="{x:Type viewmodels:UsersViewModel}">
                 <views:UsersView/>
             </DataTemplate>

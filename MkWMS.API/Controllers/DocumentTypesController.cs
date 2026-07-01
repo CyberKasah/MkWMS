@@ -9,7 +9,8 @@ namespace MkWMS.API.Controllers;
 
 [ApiController]
 [Route("api/documenttypes")]
-[Authorize(Policy = "AdminPolicy")]
+[Authorize]
+
 public class DocumentTypesController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
@@ -59,6 +60,7 @@ public class DocumentTypesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Create(DocumentTypeDto dto)
     {
         var entity = new DocumentType { Name = dto.Name };
@@ -70,6 +72,7 @@ public class DocumentTypesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Delete(int id)
     {
         var entity = await _context.DocumentTypes.FindAsync(id);

@@ -44,7 +44,7 @@ public partial class AuditLogsViewModel : BaseViewModel
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
                 var json = value.ChangesJson.Trim();
 
-                // Если JSON корректный и это массив
+
                 if (json.StartsWith("[") && json.EndsWith("]"))
                 {
                     var details = JsonSerializer.Deserialize<List<ChangeDetail>>(json, options);
@@ -52,7 +52,7 @@ public partial class AuditLogsViewModel : BaseViewModel
                     {
                         foreach (var d in details)
                         {
-                            // Пропускаем технические поля
+
                             if (d.Field == "Id" || d.Field.EndsWith("Id") || d.Field.Contains("Navigation"))
                                 continue;
 
@@ -63,13 +63,13 @@ public partial class AuditLogsViewModel : BaseViewModel
             }
             catch (Exception ex)
             {
-                // Чтобы вы видели ошибку в отладке
+
                 System.Diagnostics.Debug.WriteLine($"JSON Error: {ex.Message}");
                 SelectedLogDetails.Add(new ChangeDetail { Field = "Ошибка", New = "Не удалось прочитать изменения" });
             }
         }
 
-        // Если изменений нет, можно добавить строку-заглушку
+
         if (SelectedLogDetails.Count == 0 && !string.IsNullOrEmpty(value.Action))
         {
             SelectedLogDetails.Add(new ChangeDetail { Field = "Инфо", New = "Нет зафиксированных изменений полей" });
@@ -118,7 +118,7 @@ public partial class AuditLogsViewModel : BaseViewModel
 
     partial void OnSearchTextChanged(string value)
     {
-        // Отменяем предыдущий таймер, если пользователь продолжает печатать
+
         _searchCts?.Cancel();
         _searchCts = new System.Threading.CancellationTokenSource();
         var token = _searchCts.Token;
@@ -127,19 +127,19 @@ public partial class AuditLogsViewModel : BaseViewModel
         {
             try
             {
-                // Ждем 500 мс после последнего нажатия клавиши
+
                 await Task.Delay(500, token);
 
                 if (!token.IsCancellationRequested)
                 {
-                    // Обязательно вызываем Load() в главном UI-потоке
+
                     System.Windows.Application.Current.Dispatcher.Invoke(() =>
                     {
                         _ = Load();
                     });
                 }
             }
-            catch (TaskCanceledException) { /* Игнорируем, это штатная отмена */ }
+            catch (TaskCanceledException) {  }
         });
     }
 }

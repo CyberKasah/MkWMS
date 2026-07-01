@@ -25,12 +25,12 @@ private void GoToDetails()
 {
     if (SelectedItem == null) return;
 
-    // Теперь передаём CounterpartiesVM, чтобы при возврате табы работали
+
     _navigation.Navigate(new DocumentDetailsViewModel(
-        _api, 
-        _navigation, 
-        SelectedItem.Id, 
-        CounterpartiesVM));   // ← добавлено
+        _api,
+        _navigation,
+        SelectedItem.Id,
+        CounterpartiesVM));
 }
 
     [RelayCommand]
@@ -48,10 +48,25 @@ private void GoToDetails()
         IsLoading = true;
         try
         {
-            if (await _api.PostDocumentAsync(SelectedItem.Id)) await LoadAsync();
-            else SetError("Не удалось провести документ");
+            if (await _api.PostDocumentAsync(SelectedItem.Id))
+            {
+                await LoadAsync();
+                AppMessageBoxWindow.Show($"Документ {SelectedItem.DocumentNumber} проведён.", "Готово", AppMessageBoxIcon.Success);
+            }
+            else
+            {
+
+
+                var reason = _api.LastErrorMessage ?? "Не удалось провести документ";
+                SetError(reason);
+                AppMessageBoxWindow.Show(reason, "Документ не проведён", AppMessageBoxIcon.Error);
+            }
         }
-        catch (Exception ex) { SetError(ex.Message); }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+            AppMessageBoxWindow.Show(ex.Message, "Ошибка", AppMessageBoxIcon.Error);
+        }
         finally { IsLoading = false; }
     }
 
@@ -62,24 +77,37 @@ private void GoToDetails()
         IsLoading = true;
         try
         {
-            if (await _api.UnpostDocumentAsync(SelectedItem.Id)) await LoadAsync();
-            else SetError("Не удалось отменить проведение");
+            if (await _api.UnpostDocumentAsync(SelectedItem.Id))
+            {
+                await LoadAsync();
+                AppMessageBoxWindow.Show($"Документ {SelectedItem.DocumentNumber} отменён.", "Готово", AppMessageBoxIcon.Success);
+            }
+            else
+            {
+                var reason = _api.LastErrorMessage ?? "Не удалось отменить документ";
+                SetError(reason);
+                AppMessageBoxWindow.Show(reason, "Документ не отменён", AppMessageBoxIcon.Error);
+            }
         }
-        catch (Exception ex) { SetError(ex.Message); }
+        catch (Exception ex)
+        {
+            SetError(ex.Message);
+            AppMessageBoxWindow.Show(ex.Message, "Ошибка", AppMessageBoxIcon.Error);
+        }
         finally { IsLoading = false; }
     }
 
-    // ====================== ПЕЧАТЬ И PDF ======================
+
 
     [RelayCommand(CanExecute = nameof(CanExecuteDocumentAction))]
-    private async Task PrintDocumentAsync(string printType) // ← Теперь принимает параметр!
+    private async Task PrintDocumentAsync(string printType)
     {
         if (SelectedItem == null || string.IsNullOrEmpty(printType)) return;
 
         IsLoading = true;
         try
         {
-            // Прокидываем тип в API (раньше тут был хардкод "torg12")
+
             var pdfBytes = await _api.GetPrintFormAsync(SelectedItem.Id, printType);
 
             if (pdfBytes == null || pdfBytes.Length == 0)
@@ -126,7 +154,7 @@ private void GoToDetails()
                 if (pdfBytes != null)
                 {
                     await System.IO.File.WriteAllBytesAsync(dialog.FileName, pdfBytes);
-                    MessageBox.Show("PDF успешно сохранён", "Готово", MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppMessageBoxWindow.Show("PDF успешно сохранён", "Готово", AppMessageBoxIcon.Success);
                 }
             }
             catch (Exception ex)
@@ -155,11 +183,13 @@ private void GoToDetails()
             {
                 if (await _api.UploadDocumentScanAsync(SelectedItem.Id, dialog.FileName))
                 {
-                    MessageBox.Show("Скан успешно загружен", "Готово", MessageBoxButton.OK, MessageBoxImage.Information);
+                    AppMessageBoxWindow.Show("Скан успешно загружен", "Готово", AppMessageBoxIcon.Success);
                 }
                 else
                 {
-                    SetError("Не удалось загрузить скан");
+                    var reason = _api.LastErrorMessage ?? "Не удалось загрузить скан";
+                    SetError(reason);
+                    AppMessageBoxWindow.Show(reason, "Ошибка загрузки", AppMessageBoxIcon.Error);
                 }
             }
             catch (Exception ex)
@@ -174,7 +204,7 @@ private void GoToDetails()
     {
         base.OnPropertyChanged(e);
 
-        // Когда меняется выбранный документ, заставляем кнопки перепроверить свою доступность
+
         if (e.PropertyName == nameof(SelectedItem))
         {
             PrintDocumentCommand.NotifyCanExecuteChanged();

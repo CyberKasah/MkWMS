@@ -13,17 +13,17 @@ public class PdfExportService : IPdfExportService
     public PdfExportService(MkWMSDbContext context)
     {
         _context = context;
-        // Обязательная настройка для QuestPDF
+
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
     public async Task<byte[]> GenerateDocumentPdfAsync(int documentId)
     {
-        // 1. Получаем данные документа со связанными сущностями
+
         var document = await _context.Documents
             .Include(d => d.DocumentType)
             .Include(d => d.Warehouse)
-            // ИСПРАВЛЕНО: используем Items вместо DocumentItems
+
             .Include(d => d.Items)
                 .ThenInclude(di => di.Product)
             .FirstOrDefaultAsync(d => d.Id == documentId);
@@ -31,7 +31,7 @@ public class PdfExportService : IPdfExportService
         if (document == null)
             throw new Exception("Документ не найден");
 
-        // 2. Верстаем PDF
+
         var pdfDocument = Document.Create(container =>
         {
             container.Page(page =>
@@ -41,13 +41,13 @@ public class PdfExportService : IPdfExportService
                 page.PageColor(Colors.White);
                 page.DefaultTextStyle(x => x.FontSize(11).FontFamily(Fonts.Arial));
 
-                // Шапка документа
+
                 page.Header().Element(header => ComposeHeader(header, document));
 
-                // Содержимое (таблица с товарами)
+
                 page.Content().Element(content => ComposeContent(content, document));
 
-                // Подвал (подписи, номера страниц)
+
                 page.Footer().Element(ComposeFooter);
             });
         });
@@ -93,16 +93,16 @@ public class PdfExportService : IPdfExportService
 
             column.Item().Table(table =>
             {
-                // Определение колонок
+
                 table.ColumnsDefinition(columns =>
                 {
-                    columns.ConstantColumn(30);  // №
-                    columns.RelativeColumn();    // Товар
-                    columns.ConstantColumn(80);  // Кол-во
-                    columns.ConstantColumn(80);  // Ед. изм.
+                    columns.ConstantColumn(30);
+                    columns.RelativeColumn();
+                    columns.ConstantColumn(80);
+                    columns.ConstantColumn(80);
                 });
 
-                // Шапка таблицы
+
                 table.Header(header =>
                 {
                     header.Cell().Element(CellStyle).Text("№");
@@ -119,9 +119,9 @@ public class PdfExportService : IPdfExportService
                     }
                 });
 
-                // Строки документа
+
                 int index = 1;
-                // ИСПРАВЛЕНО: используем Items вместо DocumentItems
+
                 foreach (var item in document.Items)
                 {
                     table.Cell().Element(CellStyle).Text(index.ToString());

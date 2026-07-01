@@ -9,7 +9,7 @@ namespace MkWMS.API.Controllers;
 
 [ApiController]
 [Route("api/batches")]
-[Authorize] // Базовый доступ: любой авторизованный пользователь может просматривать данные
+[Authorize]
 public class BatchesController : ControllerBase
 {
     private readonly MkWMSDbContext _context;
@@ -27,14 +27,14 @@ public class BatchesController : ControllerBase
 
         var query = _context.Batches.AsNoTracking().AsQueryable();
 
-        // Поиск по номеру партии
+
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
             var s = req.Search.ToLower().Trim();
             query = query.Where(x => x.BatchNumber.ToLower().Contains(s));
         }
 
-        // Сортировка
+
         query = req.SortBy?.ToLower() switch
         {
             "batchnumber" => req.SortDirection?.ToLower() == "desc"
@@ -77,7 +77,7 @@ public class BatchesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(int id)
     {
-        // Используем AsNoTracking для более быстрого получения данных без кэширования в контексте
+
         var entity = await _context.Batches.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
         if (entity == null) return NotFound();
 
@@ -92,8 +92,10 @@ public class BatchesController : ControllerBase
         });
     }
 
+
+
     [HttpPost]
-    [Authorize(Policy = "AdminPolicy")] // Только администраторы могут создавать партии
+    [Authorize]
     public async Task<IActionResult> Create(BatchDto dto)
     {
         var entity = new Batch
@@ -109,12 +111,12 @@ public class BatchesController : ControllerBase
         await _context.SaveChangesAsync();
 
         dto.Id = entity.Id;
-        // Для CRUD-логики BaseCrudViewModel лучше возвращать созданный объект
+
         return CreatedAtAction(nameof(Get), new { id = entity.Id }, dto);
     }
 
     [HttpPut("{id}")]
-    [Authorize(Policy = "AdminPolicy")] // Только администраторы могут редактировать
+    [Authorize]
     public async Task<IActionResult> Update(int id, BatchDto dto)
     {
         var entity = await _context.Batches.FindAsync(id);
@@ -131,7 +133,7 @@ public class BatchesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Policy = "AdminPolicy")] // Только администраторы могут удалять
+    [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Delete(int id)
     {
         var entity = await _context.Batches.FindAsync(id);

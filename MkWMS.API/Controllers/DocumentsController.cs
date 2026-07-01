@@ -39,8 +39,12 @@ public class DocumentsController : ControllerBase
 
         var allDocs = await _documentService.GetAllAsync();
 
-        // Фильтр по складу для обычных пользователей
-        if (!_currentUser.IsAdmin)
+
+
+
+
+
+        if (!_currentUser.CanSeeAllWarehouses)
         {
             if (!_currentUser.WarehouseId.HasValue)
                 return Forbid("У пользователя не указан склад");
@@ -48,7 +52,7 @@ public class DocumentsController : ControllerBase
             allDocs = allDocs.Where(d => d.WarehouseId == _currentUser.WarehouseId.Value).ToList();
         }
 
-        // Поиск
+
         if (!string.IsNullOrWhiteSpace(req.Search))
         {
             var s = req.Search.ToLower().Trim();
@@ -57,7 +61,7 @@ public class DocumentsController : ControllerBase
                 (d.Comment != null && d.Comment.ToLower().Contains(s))).ToList();
         }
 
-        // Сортировка
+
         allDocs = req.SortBy?.ToLower() switch
         {
             "number" or "documentnumber" => req.SortDirection?.ToLower() == "desc"

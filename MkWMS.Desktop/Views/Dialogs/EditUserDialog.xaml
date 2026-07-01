@@ -7,7 +7,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Управление пользователем — MkWMS"
-        Height="780" Width="680"
+        Height="900" Width="680"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{StaticResource Background}">
@@ -48,7 +48,8 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="Логин *" Style="{StaticResource SubHeaderText}" VerticalAlignment="Center" Margin="0,0,0,20"/>
@@ -64,7 +65,7 @@
                                  Padding="12,10" BorderThickness="0" Background="Transparent"/>
                     </Border>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Пароль *" Style="{StaticResource SubHeaderText}" 
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Пароль *" Style="{StaticResource SubHeaderText}"
                                VerticalAlignment="Center" Margin="0,0,0,20"
                                Visibility="{Binding IsNew, Converter={StaticResource BoolToVis}}"/>
                     <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource InputBorder}" Margin="0,0,0,20"
@@ -84,12 +85,12 @@
                     </Border>
 
                     <TextBlock Grid.Row="4" Grid.Column="0" Text="Статус" Style="{StaticResource SubHeaderText}" VerticalAlignment="Center" Margin="0,0,0,20"/>
-                    <CheckBox Grid.Row="4" Grid.Column="1" Content="Активен" 
+                    <CheckBox Grid.Row="4" Grid.Column="1" Content="Активен"
                               IsChecked="{Binding User.IsActive, Mode=TwoWay}"
                               VerticalContentAlignment="Center" Margin="0,0,0,20" FontSize="14"/>
 
                     <TextBlock Grid.Row="5" Grid.Column="0" Text="Роли доступа *" Style="{StaticResource SubHeaderText}" VerticalAlignment="Top" Margin="0,8,0,0"/>
-                    <Border Grid.Row="5" Grid.Column="1" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" MinHeight="160">
+                    <Border Grid.Row="5" Grid.Column="1" Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1" MinHeight="160" Margin="0,0,0,20">
                         <ListBox ItemsSource="{Binding Roles}" BorderThickness="0" Background="Transparent" Padding="8">
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
@@ -100,6 +101,57 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                     </Border>
+
+
+                    <Border Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2"
+                            Background="#F8FAFC" CornerRadius="10" BorderBrush="#E2E8F0" BorderThickness="1"
+                            Padding="16" Margin="0,4,0,0"
+                            Visibility="{Binding IsNew, Converter={StaticResource BoolToVis}, ConverterParameter=inverse}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding User.Login, StringFormat='Сброс пароля пользователю: {0}'}"
+                                       Style="{StaticResource SubHeaderText}" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                            <TextBlock Text="Новый пароль" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4" FontSize="13"/>
+                            <Border Style="{StaticResource InputBorder}" Margin="0,0,0,12">
+                                <PasswordBox Padding="12,10" BorderThickness="0" Background="Transparent"
+                                             local:PasswordBoxHelper.BoundPassword="{Binding NewPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             local:PasswordBoxHelper.BindPassword="True"/>
+                            </Border>
+
+                            <TextBlock Text="Подтверждение нового пароля" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4" FontSize="13"/>
+                            <Border Style="{StaticResource InputBorder}" Margin="0,0,0,12">
+                                <PasswordBox Padding="12,10" BorderThickness="0" Background="Transparent"
+                                             local:PasswordBoxHelper.BoundPassword="{Binding NewPasswordConfirm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             local:PasswordBoxHelper.BindPassword="True"/>
+                            </Border>
+
+                            <TextBlock Text="Ваш пароль (для подтверждения действия)" Foreground="{StaticResource TextSecondary}" Margin="0,0,0,4" FontSize="13"/>
+                            <Border Style="{StaticResource InputBorder}" Margin="0,0,0,12">
+                                <PasswordBox Padding="12,10" BorderThickness="0" Background="Transparent"
+                                             local:PasswordBoxHelper.BoundPassword="{Binding AdminConfirmPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             local:PasswordBoxHelper.BindPassword="True"/>
+                            </Border>
+
+                            <Button Content="Сбросить пароль" Command="{Binding ResetPasswordCommand}"
+                                    Style="{StaticResource OutlineButton}" HorizontalAlignment="Left"
+                                    Width="200" Height="40" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="{Binding ResetPasswordMessage}"
+                                       TextWrapping="Wrap" FontWeight="Medium" FontSize="13"
+                                       Visibility="{Binding ResetPasswordMessage, Converter={StaticResource BoolToVis}}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource Danger}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ResetPasswordSuccess}" Value="True">
+                                                <Setter Property="Foreground" Value="#27AE60"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
                 </Grid>
             </ScrollViewer>
 
@@ -108,8 +160,8 @@
                              Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}"
                              Foreground="{StaticResource Primary}"/>
 
-                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}" 
-                           HorizontalAlignment="Center" Margin="0,0,0,12" FontSize="13" 
+                <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource Danger}"
+                           HorizontalAlignment="Center" Margin="0,0,0,12" FontSize="13"
                            FontWeight="Medium" TextWrapping="Wrap" TextAlignment="Center"
                            Visibility="{Binding HasError, Converter={StaticResource BoolToVis}}"/>
 

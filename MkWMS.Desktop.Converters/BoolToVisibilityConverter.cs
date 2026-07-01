@@ -11,16 +11,16 @@ public class BoolToVisibilityConverter : IValueConverter
     {
         bool isTrue = false;
 
-        // 1. Логика определения состояния (bool или наличие объекта)
+        
         if (value is bool b)
             isTrue = b;
         else if (value != null)
             isTrue = true;
 
-        // 2. Обработка параметра
+        
         if (parameter is string p)
         {
-            // Если в параметре есть '|', значит мы хотим получить текст
+            
             if (p.Contains('|'))
             {
                 var parts = p.Split('|');
@@ -29,14 +29,14 @@ public class BoolToVisibilityConverter : IValueConverter
                 return isTrue ? trueText : falseText;
             }
 
-            // Стандартная инверсия для Visibility
+            
             if (p.Equals("inverse", StringComparison.OrdinalIgnoreCase))
             {
                 isTrue = !isTrue;
             }
         }
 
-        // 3. Если XAML ожидает строку, но мы не попали в условие с '|'
+        
         if (targetType == typeof(string))
         {
             return isTrue.ToString();

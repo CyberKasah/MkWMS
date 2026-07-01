@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+             xmlns:services="clr-namespace:MkWMS.Desktop.Services"
              mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1100">
 
@@ -18,7 +19,7 @@
             <ColumnDefinition Width="360"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Левая часть: таблица и инструменты -->
+
         <Grid Grid.Column="0" Margin="0,0,12,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -51,6 +52,7 @@ Margin="0,0,6,0"/>
                          MinWidth="135" Margin="0,0,6,0"/>
                 <Button Content="Удалить"
                         Command="{Binding DeleteCommand}"
+                                    Visibility="{Binding Source={x:Static services:AuthService.Current}, Path=IsAdministrator, Converter={StaticResource BoolToVis}}"
                         CommandParameter="{Binding SelectedItem}"
                         Style="{StaticResource PrimaryButton}"
                         Background="#E74C3C" BorderBrush="#C0392B"
@@ -82,7 +84,7 @@ Margin="0,0,6,0"/>
             </StackPanel>
         </Grid>
 
-        <!-- Правая панель: создание / редактирование контрагента -->
+
         <Border Grid.Column="1" Background="{StaticResource Surface}" CornerRadius="10"
                 Padding="16" Effect="{StaticResource Elevation2}"
                 Visibility="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}">
@@ -94,13 +96,13 @@ Margin="0,0,6,0"/>
                                FontSize="18"
                                Margin="0,0,0,15"/>
 
-                    <!-- Название -->
+
                     <TextBlock Text="Название *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.Name, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,16"/>
 
-                    <!-- ИНН и КПП в одной строке -->
+
                     <Grid Margin="0,0,0,16">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -118,7 +120,7 @@ Margin="0,0,6,0"/>
                         </StackPanel>
                     </Grid>
 
-                    <!-- Адрес -->
+
                     <TextBlock Text="Адрес" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.Address, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
@@ -128,7 +130,7 @@ Margin="0,0,6,0"/>
                              VerticalScrollBarVisibility="Auto"
                              MinHeight="60"/>
 
-                    <!-- Тип контрагента -->
+
                     <TextBlock Text="Тип контрагента" Margin="0,0,0,8" Foreground="{StaticResource TextSecondary}" FontWeight="SemiBold"/>
                     <StackPanel Margin="0,0,0,20">
                         <CheckBox Content="Поставщик"
@@ -138,7 +140,7 @@ Margin="0,0,6,0"/>
                                   IsChecked="{Binding SelectedItem.IsCustomer, Mode=TwoWay}"/>
                     </StackPanel>
 
-                    <!-- Кнопки -->
+
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Отмена"
                                 Command="{Binding CancelCommand}"

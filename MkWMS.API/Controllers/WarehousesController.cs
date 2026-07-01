@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using MkWMS.API.DTOs;
 using MkWMS.Data.Context;
 using MkWMS.Data.Entities;
-using MkWMS.API.Services; // для ICurrentUserService
+using MkWMS.API.Services;
 
 namespace MkWMS.API.Controllers;
 
@@ -82,8 +82,11 @@ public class WarehousesController : ControllerBase
         });
     }
 
+
+
+
     [HttpPost]
-    [Authorize(Policy = "AdminPolicy")]
+    [Authorize]
     public async Task<IActionResult> Create(WarehouseDto dto)
     {
         var entity = new Warehouse
@@ -100,9 +103,9 @@ public class WarehousesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = entity.Id }, dto);
     }
 
-    // ДОБАВЛЯЕМ UPDATE
+
     [HttpPut("{id}")]
-    [Authorize(Policy = "AdminPolicy")]
+    [Authorize]
     public async Task<IActionResult> Update(int id, WarehouseDto dto)
     {
         var entity = await _context.Warehouses.FindAsync(id);
@@ -116,7 +119,7 @@ public class WarehousesController : ControllerBase
         return NoContent();
     }
 
-    // ДОБАВЛЯЕМ DELETE
+
     [HttpDelete("{id}")]
     [Authorize(Policy = "AdminPolicy")]
     public async Task<IActionResult> Delete(int id)
@@ -127,7 +130,7 @@ public class WarehousesController : ControllerBase
 
         if (entity == null) return NotFound();
 
-        // Проверяем, есть ли связанные данные
+
         if (entity.Departments.Any())
             return BadRequest("Нельзя удалить склад, у которого есть подразделения");
 

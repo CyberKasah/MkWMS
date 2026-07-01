@@ -5,7 +5,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace MkWMS.API.Services;
 
-// DocumentPostingService.cs
 public class DocumentPostingService : IDocumentPostingService
 {
     private readonly MkWMSDbContext _context;
@@ -31,14 +30,14 @@ public class DocumentPostingService : IDocumentPostingService
         try
         {
             var doc = await _context.Documents
-                .Include(d => d.Items)
-                .Include(d => d.DocumentType) // Важно для проверки типа
+                .Include(d => d.Items).ThenInclude(i => i.Product)
+                .Include(d => d.DocumentType)
                 .FirstOrDefaultAsync(d => d.Id == id);
 
             if (doc == null) return (false, "Документ не найден");
             if (doc.Status == DocumentStatus.Posted) return (false, "Документ уже проведён");
 
-            // 1. Движения по складу
+
             var result = await _stockService.ApplyMovementsAsync(doc);
             if (!result.Success)
             {
@@ -46,20 +45,20 @@ public class DocumentPostingService : IDocumentPostingService
                 return result;
             }
 
-            // 2. Финансовая логика
-            // Если приход — обновляем закупочные цены
+
+
             if (doc.DocumentType?.Name == "Приход")
             {
-                // Обновляем цены в справочнике товаров
+
                 await _finance.UpdateProductPricesFromReceiptAsync(doc.Id);
-                // Обновляем цены в других связанных местах (существующий метод)
+
                 await _finance.UpdateDocumentItemsWithRealPricesAsync(doc.Id);
             }
 
-            // В любом случае пересчитываем общую стоимость документа
+
             await _finance.CalculateDocumentCostAsync(doc.Id);
 
-            // 3. Смена статуса и лог
+
             doc.Status = DocumentStatus.Posted;
             await _audit.LogAsync(userId, $"Проведён документ {doc.DocumentNumber}");
 
@@ -75,6 +74,10 @@ public class DocumentPostingService : IDocumentPostingService
         }
     }
 
+
+
+
+
     public async Task<(bool Success, string? Error)> UnpostAsync(int id, int userId)
     {
         using var transaction = await _context.Database.BeginTransactionAsync();
@@ -83,13 +86,17 @@ public class DocumentPostingService : IDocumentPostingService
             var doc = await _context.Documents.FirstOrDefaultAsync(d => d.Id == id);
 
             if (doc == null) return (false, "Документ не найден");
-            if (doc.Status != DocumentStatus.Posted) return (false, "Документ не проведён");
+            if (doc.Status == DocumentStatus.Cancelled) return (false, "Документ уже отменён");
 
-            // Откат складских движений
-            await _stockService.ReverseMovementsAsync(id);
 
-            doc.Status = DocumentStatus.Draft;
-            await _audit.LogAsync(userId, $"Отменено проведение {doc.DocumentNumber}");
+
+            if (doc.Status == DocumentStatus.Posted)
+            {
+                await _stockService.ReverseMovementsAsync(id);
+            }
+
+            doc.Status = DocumentStatus.Cancelled;
+            await _audit.LogAsync(userId, $"Отменён документ {doc.DocumentNumber}");
 
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -99,7 +106,7 @@ public class DocumentPostingService : IDocumentPostingService
         catch (Exception ex)
         {
             await transaction.RollbackAsync();
-            return (false, $"Ошибка отмены проведения: {ex.Message}");
+            return (false, $"Ошибка отмены документа: {ex.Message}");
         }
     }
 }

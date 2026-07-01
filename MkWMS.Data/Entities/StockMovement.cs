@@ -20,7 +20,6 @@ public class StockMovement
     public int? StorageLocationId { get; set; }
 
 
-    // Навигации
     public Product Product { get; set; } = null!;
     public Warehouse Warehouse { get; set; } = null!;
     public Batch? Batch { get; set; }

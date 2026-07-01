@@ -29,7 +29,7 @@ public class StockBalancesController : ControllerBase
 
         var query = _context.StockBalances.AsNoTracking().AsQueryable();
 
-        if (!_currentUser.IsAdmin)
+        if (!_currentUser.CanSeeAllWarehouses)
         {
             if (!_currentUser.WarehouseId.HasValue)
                 return Forbid("У пользователя не указан склад");

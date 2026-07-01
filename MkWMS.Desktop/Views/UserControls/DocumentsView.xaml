@@ -16,9 +16,9 @@
     <Grid Margin="0,12,0,0">
         <TabControl Style="{StaticResource MaterialTabControl}">
 
-            <!-- ВКЛАДКА 1: ДОКУМЕНТЫ -->
+
             <TabItem Header="Документы">
-                <!-- твой оригинальный код без изменений -->
+
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -27,29 +27,29 @@
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,12">
-                        <!-- все кнопки, которые у тебя были -->
+
                         <TextBox Width="180" Height="45" Margin="0,0,8,0" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center" Padding="10,0"/>
                         <Button Content="Поиск" Command="{Binding LoadCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0"/>
                         <Button Content="Обновить" Command="{Binding RefreshCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0"/>
                         <Button Content="Создать" Command="{Binding CreateNewCommand}" Style="{StaticResource PrimaryButton}" MinWidth="95" Margin="0,0,6,0"/>
-                        <Button Content="Печать ⏷" 
-        Style="{StaticResource PrimaryButton}" 
+                        <Button Content="Печать ⏷"
+        Style="{StaticResource PrimaryButton}"
         MinWidth="95" Height="45" Margin="0,0,6,0"
         IsEnabled="{Binding SelectedItem, Converter={StaticResource NotNullToBool}}"
         Click="PrintButton_Click">
                             <Button.ContextMenu>
-                                <ContextMenu x:Name="PrintMenu" 
-                     Placement="Bottom" 
+                                <ContextMenu x:Name="PrintMenu"
+                     Placement="Bottom"
                      PlacementTarget="{Binding RelativeSource={RelativeSource Self}}">
-                                    <MenuItem Header="ТОРГ-12 (Накладная)" 
-                      Command="{Binding PrintDocumentCommand}" 
+                                    <MenuItem Header="ТОРГ-12 (Накладная)"
+                      Command="{Binding PrintDocumentCommand}"
                       CommandParameter="torg12"/>
-                                    <MenuItem Header="УПД" 
-                      Command="{Binding PrintDocumentCommand}" 
+                                    <MenuItem Header="УПД"
+                      Command="{Binding PrintDocumentCommand}"
                       CommandParameter="upd"/>
                                     <Separator Style="{StaticResource {x:Static MenuItem.SeparatorStyleKey}}"/>
-                                    <MenuItem Header="ИНВ-3 (Инвентаризация)" 
-                      Command="{Binding PrintDocumentCommand}" 
+                                    <MenuItem Header="ИНВ-3 (Инвентаризация)"
+                      Command="{Binding PrintDocumentCommand}"
                       CommandParameter="inv3"/>
                                 </ContextMenu>
                             </Button.ContextMenu>
@@ -63,28 +63,31 @@
                     </StackPanel>
 
                     <DataGrid Grid.Row="1" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" AlternatingRowBackground="#F7F7F7" RowHeight="52">
-                        <!-- твои колонки без изменений -->
+
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" ElementStyle="{StaticResource CenterText}"/>
                             <DataGridTextColumn Header="Номер" Binding="{Binding DocumentNumber}" Width="140"/>
-                            <DataGridTextColumn Header="Тип" Binding="{Binding DocumentTypeId}" Width="110"/>
+                            <DataGridTextColumn Header="Тип" Binding="{Binding DocumentTypeName}" Width="110"/>
                             <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="110">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Status}" Value="Проведён">
+                                            <DataTrigger Binding="{Binding Status}" Value="Проведен">
                                                 <Setter Property="Foreground" Value="#27AE60"/>
                                                 <Setter Property="FontWeight" Value="SemiBold"/>
                                             </DataTrigger>
                                             <DataTrigger Binding="{Binding Status}" Value="Черновик">
                                                 <Setter Property="Foreground" Value="#F39C12"/>
                                             </DataTrigger>
+                                            <DataTrigger Binding="{Binding Status}" Value="Отменен">
+                                                <Setter Property="Foreground" Value="#E74C3C"/>
+                                            </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="Дата" Binding="{Binding CreatedDate, StringFormat=dd.MM.yyyy HH:mm}" Width="150"/>
-                            <DataGridTextColumn Header="Склад" Binding="{Binding WarehouseId}" Width="90" ElementStyle="{StaticResource CenterText}"/>
+                            <DataGridTextColumn Header="Склад" Binding="{Binding WarehouseName}" Width="90" ElementStyle="{StaticResource CenterText}"/>
                             <DataGridTextColumn Header="Контрагент" Binding="{Binding CounterpartyName}" Width="180"/>
                             <DataGridTextColumn Header="Внешний №" Binding="{Binding ExternalNumber}" Width="110"/>
                             <DataGridTextColumn Header="Комментарий" Binding="{Binding Comment}" Width="200"/>
@@ -98,7 +101,7 @@
                 </Grid>
             </TabItem>
 
-            <!-- ВКЛАДКА 3: КОНТРАГЕНТЫ -->
+
             <TabItem Header="Контрагенты">
                 <views:CounterpartiesView DataContext="{Binding CounterpartiesVM}"/>
             </TabItem>

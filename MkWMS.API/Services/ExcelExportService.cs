@@ -51,11 +51,11 @@ public class ExcelExportService : IExcelExportService
         var usedRange = worksheet.RangeUsed();
         if (usedRange == null) return;
 
-        // rows — это коллекция IXLRangeRow
+
         var rows = usedRange.RowsUsed();
         var headerRow = rows.First();
 
-        // Теперь FindColumn принимает IXLRangeRow, ошибка CS1503 исчезнет
+
         int colArticle = FindColumn(headerRow, "Артикул");
         int colPurchase = FindColumn(headerRow, "Цена закупки");
         int colRetail = FindColumn(headerRow, "Цена розничная");
@@ -65,8 +65,8 @@ public class ExcelExportService : IExcelExportService
 
         foreach (var row in rows.Skip(1))
         {
-            // Используем WorksheetColumn() чтобы получить абсолютный номер колонки, 
-            // так как row.Cell(index) в диапазоне работает относительно начала диапазона
+
+
             var article = row.Cell(colArticle).GetValue<string>();
             if (string.IsNullOrWhiteSpace(article)) continue;
 
@@ -85,13 +85,13 @@ public class ExcelExportService : IExcelExportService
         await _context.SaveChangesAsync();
     }
 
-    // ИЗМЕНЕНО: Параметр row теперь имеет тип IXLRangeRow
+
     private int FindColumn(IXLRangeRow row, string name)
     {
         var cell = row.Cells().FirstOrDefault(c =>
             c.GetString().Trim().Equals(name, StringComparison.OrdinalIgnoreCase));
 
-        // Возвращаем номер колонки относительно листа
+
         return cell?.Address.ColumnNumber ?? 0;
     }
 

@@ -19,7 +19,6 @@
         </Grid.ColumnDefinitions>
 
 
-        <!-- SIDEBAR -->
 
         <Border Grid.Column="0"
                 Background="{StaticResource Surface}"
@@ -29,13 +28,13 @@
 
             <DockPanel>
 
-                <!-- USER PANEL -->
+
 
                 <StackPanel DockPanel.Dock="Bottom"
                             Margin="0,0,0,24"
                             HorizontalAlignment="Center">
 
-        
+
 
                     <Button Content="Выйти"
                             Style="{StaticResource OutlineButton}"
@@ -45,11 +44,10 @@
                 </StackPanel>
 
 
-                <!-- NAVIGATION -->
 
                 <StackPanel>
 
-                    <!-- HEADER -->
+
 
                     <StackPanel Margin="0,40,0,40"
                                 HorizontalAlignment="Center">
@@ -70,10 +68,9 @@
 
 
 
-                    <!-- НАВИГАЦИЯ -->
 
                     <Button Style="{StaticResource SidebarButton}"
-                            Command="{Binding GoToUsersCommand}">
+                            Command="{Binding GoToHomeCommand}">
 
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🏠" FontSize="18" Margin="12,0,14,0"/>
@@ -82,9 +79,9 @@
 
                     </Button>
 
-
                     <Button Style="{StaticResource SidebarButton}"
-                            Command="{Binding GoToUsersCommand}">
+                            Command="{Binding GoToUsersCommand}"
+                            Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter=Администратор}">
 
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="👤" FontSize="18" Margin="12,0,14,0"/>
@@ -93,9 +90,9 @@
 
                     </Button>
 
-
                     <Button Style="{StaticResource SidebarButton}"
-                            Command="{Binding GoToProductsCommand}">
+                            Command="{Binding GoToProductsCommand}"
+                            Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель,Кладовщик'}">
 
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📦" FontSize="18" Margin="12,0,14,0"/>
@@ -104,9 +101,9 @@
 
                     </Button>
 
-
                     <Button Style="{StaticResource SidebarButton}"
-                            Command="{Binding GoToWarehousesCommand}">
+                            Command="{Binding GoToWarehousesCommand}"
+                            Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель,Кладовщик'}">
 
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="🏬" FontSize="18" Margin="12,0,14,0"/>
@@ -115,9 +112,9 @@
 
                     </Button>
 
-
                     <Button Style="{StaticResource SidebarButton}"
-                            Command="{Binding GoToDocumentsCommand}">
+                            Command="{Binding GoToDocumentsCommand}"
+                            Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель,Кладовщик'}">
 
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📋" FontSize="18" Margin="12,0,14,0"/>
@@ -126,9 +123,9 @@
 
                     </Button>
 
-
                     <Button Style="{StaticResource SidebarButton}"
-                            Command="{Binding GoToReportsCommand}">
+                            Command="{Binding GoToReportsCommand}"
+                            Visibility="{Binding Roles, Converter={StaticResource MultiRoleToVis}, ConverterParameter='Администратор,Руководитель'}">
 
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="📊" FontSize="18" Margin="12,0,14,0"/>
@@ -145,8 +142,6 @@
 
 
 
-        <!-- MAIN CONTENT -->
-
         <Grid Grid.Column="1">
 
             <Grid.RowDefinitions>
@@ -155,8 +150,6 @@
             </Grid.RowDefinitions>
 
 
-
-            <!-- TOP BAR -->
 
             <Border Grid.Row="0"
                     Background="{StaticResource Surface}"
@@ -181,7 +174,6 @@
                                    VerticalAlignment="Center"
                                    Margin="0,0,24,0"/>
 
-
                     </StackPanel>
 
                 </Grid>
@@ -189,8 +181,6 @@
             </Border>
 
 
-
-            <!-- WORKSPACE -->
 
             <ContentControl Grid.Row="1"
                             Content="{Binding CurrentViewModel}"

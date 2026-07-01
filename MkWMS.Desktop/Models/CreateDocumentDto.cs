@@ -1,25 +1,47 @@
-﻿namespace MkWMS.API.DTOs;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-public class CreateDocumentDto
+namespace MkWMS.API.DTOs;
+
+public partial class CreateDocumentDto : ObservableObject
 {
-    public string? Number { get; set; }
-    public int DocumentTypeId { get; set; }
-    public int WarehouseId { get; set; }
-    public int? BaseDocumentId { get; set; } // Для контроля лимитов
-    public int? CounterpartyId { get; set; }
-    public string? ExternalNumber { get; set; }
-    public DateTime? ExternalDate { get; set; }
-    public string? Comment { get; set; }
+    [ObservableProperty] private string? number;
+    [ObservableProperty] private int documentTypeId;
+    [ObservableProperty] private int warehouseId;
+    [ObservableProperty] private int? baseDocumentId;
+    [ObservableProperty] private int? counterpartyId;
+    [ObservableProperty] private string? externalNumber;
+    [ObservableProperty] private DateTime? externalDate;
+    [ObservableProperty] private string? comment;
     public List<CreateDocumentItemDto> Items { get; set; } = new();
 }
 
-public class CreateDocumentItemDto
+public partial class CreateDocumentItemDto : ObservableObject
 {
-    public int ProductId { get; set; }
-    public int? BatchId { get; set; }
-    public int? SerialNumberId { get; set; }
-    public decimal Quantity { get; set; }
-    public decimal Price { get; set; }
-    public decimal VatSum { get; set; }
+    [ObservableProperty] private int productId;
+    [ObservableProperty] private int? batchId;
+    [ObservableProperty] private int? serialNumberId;
+    [ObservableProperty] private int? storageLocationId;
+    [ObservableProperty] private decimal quantity;
+    [ObservableProperty] private decimal price;
+    [ObservableProperty] private decimal vatSum;
+
+
+
+
+
+
+    public decimal SubTotal => Quantity * Price;
     public decimal TotalSum => (Quantity * Price) + VatSum;
+
+    partial void OnQuantityChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(SubTotal));
+        OnPropertyChanged(nameof(TotalSum));
+    }
+    partial void OnPriceChanged(decimal value)
+    {
+        OnPropertyChanged(nameof(SubTotal));
+        OnPropertyChanged(nameof(TotalSum));
+    }
+    partial void OnVatSumChanged(decimal value) => OnPropertyChanged(nameof(TotalSum));
 }

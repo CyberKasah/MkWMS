@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для DocumentsView.xaml
-    /// </summary>
+
+
+
     public partial class DocumentsView : UserControl
     {
         public DocumentsView()
@@ -30,11 +30,11 @@ namespace MkWMS.Desktop.Views.UserControls
             var btn = sender as Button;
             if (btn != null && btn.ContextMenu != null)
             {
-                // Устанавливаем цель размещения, чтобы меню знало, где оно находится
+
                 btn.ContextMenu.PlacementTarget = btn;
                 btn.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
 
-                // Открываем меню
+
                 btn.ContextMenu.IsOpen = true;
             }
         }

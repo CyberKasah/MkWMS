@@ -18,10 +18,10 @@ public partial class DocumentDetailsViewModel : BaseViewModel
 
     [ObservableProperty] private DocumentDto? _document;
 
-    // Список товаров внутри документа
+
     [ObservableProperty] private ObservableCollection<DocumentItemDto> _items = new();
 
-    // Свойства для итогов (вычисляются на лету)
+
     [ObservableProperty] private decimal _totalQuantity;
     [ObservableProperty] private decimal _totalVat;
     [ObservableProperty] private decimal _totalSum;
@@ -49,14 +49,14 @@ public partial class DocumentDetailsViewModel : BaseViewModel
 
         try
         {
-            // Получаем полные данные документа по ID
+
             var doc = await _apiClient.GetDocumentByIdAsync(_documentId);
 
             if (doc != null)
             {
                 Document = doc;
 
-                // Заполняем коллекцию товаров
+
                 Items.Clear();
                 if (doc.Items != null)
                 {
@@ -65,7 +65,7 @@ public partial class DocumentDetailsViewModel : BaseViewModel
                         Items.Add(item);
                     }
 
-                    // Считаем итоги
+
                     CalculateTotals();
                 }
             }
@@ -88,14 +88,14 @@ public partial class DocumentDetailsViewModel : BaseViewModel
     {
         TotalQuantity = Items.Sum(x => x.Quantity);
         TotalVat = Items.Sum(x => x.VatSum);
-        // Сумма = (Количество * Цена) + НДС (если цена уже включает НДС, логика меняется)
+
         TotalSum = Items.Sum(x => (x.Quantity * (x.Price ?? 0)) + x.VatSum);
     }
 
     [RelayCommand]
     private void GoBack()
     {
-        // Возвращаемся назад, передавая сохраненную VM контрагентов для работы табов
+
         _navigation.Navigate(new DocumentsViewModel(_apiClient, _navigation, _counterpartiesVM));
     }
 

@@ -41,7 +41,7 @@ public class FinanceService : IFinanceService
 
         if (doc == null) return;
 
-        // Для Прихода и Инвентаризации цену НЕ перезаписываем (оставляем введённую пользователем)
+
         if (doc.DocumentType.Name == "Приход" || doc.DocumentType.Name == "Инвентаризация")
             return;
 
@@ -54,41 +54,42 @@ public class FinanceService : IFinanceService
         }
     }
 
-    /// <summary>
-    /// Главный метод: обновляет цену (где нужно) + ВСЕГДА пересчитывает Сумму НДС
-    /// </summary>
+
+
+
     public async Task CalculateDocumentCostAsync(int documentId)
     {
         var doc = await _context.Documents
             .Include(d => d.Items)
-                .ThenInclude(i => i.Product)   // ← ОБЯЗАТЕЛЬНО для получения VatRate
+                .ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(d => d.Id == documentId);
 
         if (doc == null || !doc.Items.Any()) return;
 
-        // 1. Обновляем закупочные цены (если нужно)
+
         await UpdateDocumentItemsWithRealPricesAsync(documentId);
 
-        // 2. Пересчитываем НДС для каждой строки
+
         foreach (var item in doc.Items)
         {
             var price = item.Price ?? 0m;
-            var rate = item.Product?.VatRate ?? 0m;   // берём ставку из товара
+            var rate = item.Product?.VatRate ?? 0m;
 
             item.VatSum = price * item.Quantity * (rate / 100m);
         }
 
         await _context.SaveChangesAsync();
     }
-    /// <summary>
-    /// Заполняет отчёт по остаткам с НДС
-    /// </summary>
+
+
+
     public async Task<List<StockBalanceReportDto>> GetStockBalanceReportAsync(int? warehouseId = null)
     {
         var query = _context.StockBalances
             .Include(sb => sb.Product)
             .Include(sb => sb.Warehouse)
             .Include(sb => sb.Batch)
+            .Include(sb => sb.StorageLocation)
             .AsNoTracking()
             .AsQueryable();
 
@@ -102,6 +103,7 @@ public class FinanceService : IFinanceService
                 Product = sb.Product.Name,
                 WarehouseId = sb.WarehouseId,
                 Warehouse = sb.Warehouse.Name,
+                WarehouseName = sb.Warehouse.Name,
                 Batch = sb.Batch != null ? sb.Batch.BatchNumber : null,
                 Quantity = sb.Quantity,
                 Unit = sb.Product.Unit ?? "шт",
@@ -109,14 +111,17 @@ public class FinanceService : IFinanceService
                 PurchasePrice = sb.Product.PurchasePrice,
                 VatRate = sb.Product.VatRate,
                 TotalValue = sb.Quantity * sb.Product.PurchasePrice,
-                TotalVat = sb.Quantity * sb.Product.PurchasePrice * (sb.Product.VatRate / 100m)
+                TotalVat = sb.Quantity * sb.Product.PurchasePrice * (sb.Product.VatRate / 100m),
+
+                LocationName = sb.StorageLocation != null ? sb.StorageLocation.Name : "—",
+                RfidTag = sb.StorageLocation != null ? sb.StorageLocation.RfidTag : null
             })
             .ToListAsync();
     }
 
-    /// <summary>
-    /// Заполняет отчёт по движениям с НДС (без ?. и ?? в лямбде)
-    /// </summary>
+
+
+
     public async Task<List<StockMovementReportDto>> GetStockMovementReportAsync(
      int? warehouseId = null,
      DateTime? from = null,
@@ -126,14 +131,21 @@ public class FinanceService : IFinanceService
             .Include(sm => sm.Product)
             .Include(sm => sm.Warehouse)
             .Include(sm => sm.Document)
-                .ThenInclude(d => d.DocumentType) // <-- ВАЖНО: Подтягиваем тип документа
+                .ThenInclude(d => d.DocumentType)
             .Include(sm => sm.StorageLocation)
             .AsNoTracking()
             .AsQueryable();
 
+
+
+
+
+
+
+
         if (warehouseId.HasValue) query = query.Where(sm => sm.WarehouseId == warehouseId.Value);
-        if (from.HasValue) query = query.Where(sm => sm.MovementDate >= from.Value);
-        if (to.HasValue) query = query.Where(sm => sm.MovementDate <= to.Value);
+        if (from.HasValue) query = query.Where(sm => sm.MovementDate >= from.Value.Date);
+        if (to.HasValue) query = query.Where(sm => sm.MovementDate < to.Value.Date.AddDays(1));
 
         return await query
             .Select(sm => new StockMovementReportDto
@@ -143,13 +155,17 @@ public class FinanceService : IFinanceService
                 Product = sm.Product.Name,
                 Warehouse = sm.Warehouse.Name,
                 Quantity = sm.QuantityChange,
-                // Если есть тип документа - берем его, иначе fallback на плюс/минус
+
                 Type = sm.Document.DocumentType != null ? sm.Document.DocumentType.Name : (sm.QuantityChange > 0 ? "Приход" : "Расход"),
                 LocationName = sm.StorageLocation != null ? (sm.StorageLocation.Name ?? "") : "",
                 RfidTag = sm.StorageLocation != null ? (sm.StorageLocation.RfidTag ?? "") : "",
+
+                FromLocation = sm.QuantityChange < 0 ? (sm.StorageLocation != null ? sm.StorageLocation.Name : "—") : "—",
+                ToLocation = sm.QuantityChange > 0 ? (sm.StorageLocation != null ? sm.StorageLocation.Name : "—") : "—",
+                DocumentNumber = sm.Document.DocumentNumber,
                 Price = sm.Price ?? 0m,
                 VatRate = sm.Product.VatRate,
-                // Для отчетов берем количество по модулю (чтобы не было отрицательных сумм списания)
+
                 VatSum = (sm.Price ?? 0m) * Math.Abs(sm.QuantityChange) * (sm.Product.VatRate / 100m),
                 TotalValue = (sm.Price ?? 0m) * Math.Abs(sm.QuantityChange)
             })
@@ -170,11 +186,11 @@ public class FinanceService : IFinanceService
         {
             if (item.Price.HasValue && item.Price.Value > 0)
             {
-                // Обновляем закупочную цену
+
                 item.Product.PurchasePrice = item.Price.Value;
 
-                // Опционально: автоматическая наценка для розницы (например, +30%).
-                // Если розница задается вручную, эту строку можно убрать.
+
+
                 item.Product.RetailPrice = item.Price.Value * 1.30m;
             }
         }

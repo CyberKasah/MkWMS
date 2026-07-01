@@ -51,7 +51,7 @@ public partial class LoginViewModel : BaseViewModel
 
         try
         {
-            var (success, message, requiresChange, token, user) = await _apiClient.LoginAsync(Login, Password);
+            var (success, message, requiresChange, token, refreshToken, user) = await _apiClient.LoginAsync(Login, Password);
 
             if (!success || user == null)
             {
@@ -59,7 +59,7 @@ public partial class LoginViewModel : BaseViewModel
                 return;
             }
 
-            _authService.SetUser(user.Login, user.Roles.Select(r => r.Name).ToList(), token ?? "", user.WarehouseId);
+            _authService.SetUser(user.Login, user.Roles.Select(r => r.Name).ToList(), token ?? "", refreshToken, user.WarehouseId);
 
             if (!_authService.Roles.Any())
             {
@@ -71,7 +71,7 @@ public partial class LoginViewModel : BaseViewModel
             {
                 var changeVm = new ChangePasswordViewModel(_apiClient);
                 var changeWindow = new ChangePasswordWindow { DataContext = changeVm };
-                // Пытаемся найти текущее активное окно для задания владельца
+
                 changeWindow.Owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive);
 
                 if (changeWindow.ShowDialog() != true)
@@ -81,13 +81,13 @@ public partial class LoginViewModel : BaseViewModel
                 }
             }
 
-            // Создаем Dashboard и открываем его окно
+
             var dashboardVm = new DashboardViewModel(_apiClient, _authService, _navigation);
             var dashboardWindow = new DashboardWindow { DataContext = dashboardVm };
 
             dashboardWindow.Show();
 
-            // Закрываем окно логина (ищем то, в котором сейчас находимся)
+
             Application.Current.Windows.OfType<Window>()
                 .FirstOrDefault(w => w.DataContext == this)?.Close();
         }

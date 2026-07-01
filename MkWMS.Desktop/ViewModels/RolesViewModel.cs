@@ -18,5 +18,5 @@ public partial class RolesViewModel : BaseCrudViewModel<RoleDto>
         SelectedItem = new RoleDto();
     }
 
-    // Все остальные команды (Save, Delete, Cancel, Refresh) работают из базового класса
+
 }

@@ -8,7 +8,7 @@ namespace MkWMS.Desktop.Views.Dialogs
         public PrintLabelDialog(PrintLabelViewModel viewModel)
         {
             InitializeComponent();
-            DataContext = viewModel;   // ← это ключевая строка!
+            DataContext = viewModel;
         }
     }
 }

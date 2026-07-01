@@ -15,9 +15,9 @@ using System.Windows.Shapes;
 
 namespace MkWMS.Desktop.Views.UserControls
 {
-    /// <summary>
-    /// Логика взаимодействия для StorageLocationsView.xaml
-    /// </summary>
+
+
+
     public partial class StorageLocationsView : UserControl
     {
         public StorageLocationsView()

@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:converters="clr-namespace:MkWMS.Desktop.Converters"
+             xmlns:services="clr-namespace:MkWMS.Desktop.Services"
              mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1100">
     <UserControl.Resources>
@@ -46,6 +47,7 @@ Margin="0,0,6,0"/>
                         Width="85" Margin="0,0,6,0"/>
                 <Button Content="Удалить"
                         Command="{Binding DeleteCommand}"
+                                    Visibility="{Binding Source={x:Static services:AuthService.Current}, Path=IsAdministrator, Converter={StaticResource BoolToVis}}"
                         CommandParameter="{Binding SelectedItem}"
                         Style="{StaticResource PrimaryButton}"
                         Background="#E74C3C" BorderBrush="#C0392B"
@@ -62,7 +64,7 @@ Margin="0,0,6,0"/>
                     <DataGridTextColumn Header="Номер" Binding="{Binding Number}" Width="160"/>
                     <DataGridTextColumn Header="Статус" Binding="{Binding Status}" Width="110"/>
                     <DataGridTextColumn Header="Продукт" Binding="{Binding ProductName}" Width="180"/>
-                    <!-- Добавляем недостающие поля -->
+
                     <DataGridTextColumn Header="Код маркировки" Binding="{Binding DataMatrix}" Width="*"/>
                     <DataGridTextColumn Header="Радиометка" Binding="{Binding RfidTag}" Width="*"/>
                 </DataGrid.Columns>
@@ -83,31 +85,31 @@ Margin="0,0,6,0"/>
                                FontSize="18"
                                Margin="0,0,0,15"/>
 
-                    <!-- Номер -->
+
                     <TextBlock Text="Номер *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.Number, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- Статус -->
+
                     <TextBlock Text="Статус *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.Status, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- ID продукта -->
+
                     <TextBlock Text="ID продукта *" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.ProductId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- DataMatrix -->
+
                     <TextBlock Text="Код маркировки" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.DataMatrix, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"
                              Margin="0,0,0,20"/>
 
-                    <!-- RFID Tag -->
+
                     <TextBlock Text="Радиометка" Margin="0,0,0,4" Foreground="{StaticResource TextSecondary}"/>
                     <TextBox Text="{Binding SelectedItem.RfidTag, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                              Height="40"

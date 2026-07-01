@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using MkWMS.API.DTOs;
 using MkWMS.Desktop.Services;
+using MkWMS.Desktop.Views.Dialogs;
 using System;
 using System.Collections.ObjectModel;
 using System.IO;
@@ -38,7 +39,7 @@ public partial class ReportsViewModel : BaseViewModel
         {
             var req = new PagedRequestDto { Page = 1, PageSize = 5000 };
             var balancesTask = _apiClient.GetStockBalancesReportAsync(req);
-            // Передаем выбранные даты!
+
             var movementsTask = _apiClient.GetStockMovementsReportAsync(req, FromDate, ToDate);
 
             await Task.WhenAll(balancesTask, movementsTask);
@@ -56,7 +57,7 @@ public partial class ReportsViewModel : BaseViewModel
     [RelayCommand]
     private void Refresh() => _ = LoadAllAsync();
 
-    // ==================== ЭКСПОРТ ====================
+
     [RelayCommand]
     private async Task ExportBalancesAsync()
     {
@@ -75,7 +76,7 @@ public partial class ReportsViewModel : BaseViewModel
             if (bytes != null)
             {
                 await File.WriteAllBytesAsync(dialog.FileName, bytes);
-                MessageBox.Show("Остатки успешно экспортированы!", "Готово", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppMessageBoxWindow.Show("Остатки успешно экспортированы!", "Готово", AppMessageBoxIcon.Success);
             }
         }
         catch (Exception ex)
@@ -105,7 +106,7 @@ public partial class ReportsViewModel : BaseViewModel
             if (bytes != null)
             {
                 await File.WriteAllBytesAsync(dialog.FileName, bytes);
-                MessageBox.Show("Движения успешно экспортированы!", "Готово", MessageBoxButton.OK, MessageBoxImage.Information);
+                AppMessageBoxWindow.Show("Движения успешно экспортированы!", "Готово", AppMessageBoxIcon.Success);
             }
         }
         catch (Exception ex)
@@ -115,7 +116,7 @@ public partial class ReportsViewModel : BaseViewModel
         finally { IsLoading = false; }
     }
 
-    // ==================== ИМПОРТ ====================
+
     [RelayCommand]
     private async Task ImportProductsAsync()
     {
@@ -133,13 +134,16 @@ public partial class ReportsViewModel : BaseViewModel
             var success = await _apiClient.ImportProductsFromExcelAsync(dialog.FileName);
             if (success)
             {
-                MessageBox.Show("Импорт товаров завершён успешно!\n\nДанные обновлены на сервере.",
-                    "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-                await LoadAllAsync(); // обновляем отчёты
+                AppMessageBoxWindow.Show("Импорт товаров завершён успешно!\n\nДанные обновлены на сервере.",
+                    "Готово", AppMessageBoxIcon.Success);
+                await LoadAllAsync();
             }
             else
             {
-                SetError("Сервер вернул ошибку импорта");
+
+                var reason = _apiClient.LastErrorMessage ?? "Сервер вернул ошибку импорта";
+                SetError(reason);
+                AppMessageBoxWindow.Show(reason, "Импорт не выполнен", AppMessageBoxIcon.Error);
             }
         }
         catch (Exception ex)

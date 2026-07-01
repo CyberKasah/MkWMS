@@ -4,9 +4,6 @@ using MkWMS.Desktop.Services;
 
 namespace MkWMS.Desktop.ViewModels;
 
-/// <summary>
-/// ViewModel для справочника "Места хранения" (Storage Locations)
-/// </summary>
 public partial class StorageLocationsViewModel : BaseCrudViewModel<StorageLocationDto>
 {
     public StorageLocationsViewModel(ApiClient api) : base(api, "storagelocations")

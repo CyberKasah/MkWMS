@@ -1,4 +1,4 @@
-﻿// App.xaml.cs — НОВЫЙ ПОЛНЫЙ ВАРИАНТ
+﻿
 using Microsoft.Extensions.DependencyInjection;
 using MkWMS.Desktop.Services;
 using MkWMS.Desktop.ViewModels;
@@ -17,19 +17,18 @@ namespace MkWMS.Desktop
 
             var services = new ServiceCollection();
 
-            // 1. Регистрируем сервисы (уже было)
+
             services.AddSingleton<AuthService>();
             services.AddSingleton<NavigationService>();
             services.AddSingleton<ApiClient>();
 
 
-            // 2. РЕГИСТРИРУЕМ ВЬЮ-МОДЕЛИ (Этого не хватало!)
-            // Рекомендуется использовать AddTransient для VM окон, 
-            // чтобы при каждом запросе создавался новый экземпляр
+
+
             services.AddTransient<LoginViewModel>();
             Services = services.BuildServiceProvider();
 
-            // Теперь GetRequiredService найдет LoginViewModel
+
             var loginVm = Services.GetRequiredService<LoginViewModel>();
             var loginWindow = new LoginWindow(loginVm);
             MainWindow = loginWindow;

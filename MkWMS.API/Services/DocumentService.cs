@@ -34,7 +34,7 @@ public class DocumentService : IDocumentService
         using var transaction = await _context.Database.BeginTransactionAsync();
         try
         {
-            // 1. КОНТРОЛЬ ДОКУМЕНТА-ОСНОВАНИЯ
+
             if (dto.BaseDocumentId.HasValue)
             {
                 var baseDoc = await _context.Documents
@@ -60,7 +60,7 @@ public class DocumentService : IDocumentService
                 }
             }
 
-            // 2. ГЕНЕРАЦИЯ НОМЕРА
+
             int seqValue;
             var connection = _context.Database.GetDbConnection();
             if (connection.State != System.Data.ConnectionState.Open)
@@ -69,16 +69,16 @@ public class DocumentService : IDocumentService
             using (var command = connection.CreateCommand())
             {
                 command.Transaction = transaction.GetDbTransaction();
-                command.CommandText = "SELECT NEXT VALUE FOR DocumentNumberSeq";
+                command.CommandText = "SELECT nextval('documentnumberseq')";
                 var result = await command.ExecuteScalarAsync();
                 seqValue = Convert.ToInt32(result);
             }
             string generatedNumber = $"DOC-{seqValue:D6}";
 
-            // ИСПРАВЛЕНИЕ: Надежная проверка номера
+
             string docNumber = string.IsNullOrWhiteSpace(dto.Number) ? generatedNumber : dto.Number;
 
-            // 3. СОЗДАНИЕ ЗАГОЛОВКА
+
             var document = new Document
             {
                 DocumentNumber = docNumber,
@@ -89,7 +89,7 @@ public class DocumentService : IDocumentService
                 CreatedByUserId = userId,
                 BaseDocumentId = dto.BaseDocumentId,
                 CounterpartyId = dto.CounterpartyId,
-                ExternalNumber = dto.ExternalNumber, 
+                ExternalNumber = dto.ExternalNumber,
                 ExternalDate = dto.ExternalDate,
                 Comment = dto.Comment
             };
@@ -97,7 +97,7 @@ public class DocumentService : IDocumentService
             _context.Documents.Add(document);
             await _context.SaveChangesAsync();
 
-            // 4. СОЗДАНИЕ СТРОК
+
             if(dto.Items != null && dto.Items.Any())
         {
                 var productIds = dto.Items.Select(i => i.ProductId).Distinct().ToList();
@@ -110,7 +110,7 @@ public class DocumentService : IDocumentService
                     if (!products.TryGetValue(itemDto.ProductId, out var product))
                         throw new Exception($"Товар с Id {itemDto.ProductId} не найден.");
 
-                    // ИСПРАВЛЕНИЕ: Если цену не ввели (> 0), берем закупочную цену из базы
+
                     decimal finalPrice = itemDto.Price > 0 ? itemDto.Price : product.PurchasePrice;
                     decimal vatSum = finalPrice * itemDto.Quantity * (product.VatRate / 100m);
 
@@ -120,9 +120,10 @@ public class DocumentService : IDocumentService
                         ProductId = itemDto.ProductId,
                         BatchId = itemDto.BatchId <= 0 ? null : itemDto.BatchId,
                         SerialNumberId = itemDto.SerialNumberId <= 0 ? null : itemDto.SerialNumberId,
+                        StorageLocationId = itemDto.StorageLocationId <= 0 ? null : itemDto.StorageLocationId,
                         Quantity = itemDto.Quantity,
-                        Price = finalPrice, // Присваиваем рассчитанную цену
-                        VatSum = vatSum     // Присваиваем рассчитанный НДС
+                        Price = finalPrice,
+                        VatSum = vatSum
                     };
                 }).ToList();
 
@@ -142,7 +143,7 @@ public class DocumentService : IDocumentService
             throw;
         }
     }
-    
+
     public async Task<List<DocumentDto>> GetAllAsync()
     {
         return await _context.Documents
@@ -151,13 +152,15 @@ public class DocumentService : IDocumentService
             .Include(d => d.Counterparty)
             .Include(d => d.Items)
                 .ThenInclude(i => i.Product)
+            .Include(d => d.Items)
+                .ThenInclude(i => i.StorageLocation)
             .AsNoTracking()
             .OrderByDescending(d => d.CreatedDate)
             .Select(d => new DocumentDto
             {
                 Id = d.Id,
                 DocumentNumber = d.DocumentNumber,
-                Status = d.Status.ToString(),
+                Status = d.Status == DocumentStatus.Draft ? "Черновик" : d.Status == DocumentStatus.Posted ? "Проведен" : "Отменен",
                 Comment = d.Comment,
                 CreatedDate = d.CreatedDate,
                 DocumentTypeId = d.DocumentTypeId,
@@ -177,6 +180,8 @@ public class DocumentService : IDocumentService
                     ProductName = i.Product.Name,
                     BatchId = i.BatchId,
                     SerialNumberId = i.SerialNumberId,
+                    StorageLocationId = i.StorageLocationId,
+                    LocationName = i.StorageLocation != null ? i.StorageLocation.Name : null,
                     Quantity = i.Quantity,
                     Price = i.Price,
                     VatSum = i.VatSum
@@ -193,6 +198,8 @@ public class DocumentService : IDocumentService
             .Include(x => x.Counterparty)
             .Include(x => x.Items)
                 .ThenInclude(i => i.Product)
+            .Include(x => x.Items)
+                .ThenInclude(i => i.StorageLocation)
             .AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == id);
 
@@ -202,7 +209,7 @@ public class DocumentService : IDocumentService
         {
             Id = d.Id,
             DocumentNumber = d.DocumentNumber,
-            Status = d.Status.ToString(),
+            Status = d.Status == DocumentStatus.Draft ? "Черновик" : d.Status == DocumentStatus.Posted ? "Проведен" : "Отменен",
             Comment = d.Comment,
             CreatedDate = d.CreatedDate,
             DocumentTypeId = d.DocumentTypeId,
@@ -219,6 +226,8 @@ public class DocumentService : IDocumentService
                 Id = i.Id,
                 ProductId = i.ProductId,
                 ProductName = i.Product?.Name ?? "Неизвестный товар",
+                StorageLocationId = i.StorageLocationId,
+                LocationName = i.StorageLocation != null ? i.StorageLocation.Name : null,
                 Quantity = i.Quantity,
                 Price = i.Price,
                 VatSum = i.VatSum
@@ -312,7 +321,7 @@ public class DocumentService : IDocumentService
             {
                 Id = d.Id,
                 DocumentNumber = d.DocumentNumber,
-                Status = d.Status.ToString(),
+                Status = d.Status == DocumentStatus.Draft ? "Черновик" : d.Status == DocumentStatus.Posted ? "Проведен" : "Отменен",
                 CreatedDate = d.CreatedDate,
                 DocumentTypeId = d.DocumentTypeId
             })
